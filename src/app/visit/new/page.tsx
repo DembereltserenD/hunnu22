@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Save, Wifi, WifiOff, CheckCircle2, AlertCircle } from "lucide-react";
 import { RealtimeProvider, useRealtime } from "@/contexts/RealtimeContext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import DashboardNavbar from "@/components/dashboard-navbar";
 
@@ -19,7 +19,7 @@ function VisitFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const apartmentId = searchParams.get('apartmentId');
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     visitDate: new Date().toISOString().split('T')[0],
@@ -40,7 +40,7 @@ function VisitFormContent() {
   const handleTaskToggle = (task: string, checked: boolean) => {
     setFormData(prev => ({
       ...prev,
-      tasksCompleted: checked 
+      tasksCompleted: checked
         ? [...prev.tasksCompleted, task]
         : prev.tasksCompleted.filter(t => t !== task)
     }));
@@ -61,8 +61,8 @@ function VisitFormContent() {
         tasks_completed: formData.tasksCompleted
       });
 
-      const message = isOnline 
-        ? 'Visit logged successfully!' 
+      const message = isOnline
+        ? 'Visit logged successfully!'
         : 'Visit saved offline. Will sync when connection is restored.';
       alert(message);
       router.push(`/apartment/${apartment.id}`);
@@ -139,7 +139,7 @@ function VisitFormContent() {
               <div className="flex items-center gap-2 text-sm text-blue-800">
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                 <span>
-                  {isOnline 
+                  {isOnline
                     ? 'Real-time sync enabled - changes will be visible to all workers instantly'
                     : 'Offline mode - data will be saved locally and synced when connection returns'}
                 </span>
@@ -155,9 +155,9 @@ function VisitFormContent() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="date">Visit Date</Label>
-                  <Input 
-                    id="date" 
-                    type="date" 
+                  <Input
+                    id="date"
+                    type="date"
                     value={formData.visitDate}
                     onChange={(e) => setFormData(prev => ({ ...prev, visitDate: e.target.value }))}
                     required
@@ -182,8 +182,8 @@ function VisitFormContent() {
 
                 <div className="space-y-2">
                   <Label htmlFor="status">Visit Status *</Label>
-                  <Select 
-                    value={formData.status} 
+                  <Select
+                    value={formData.status}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
                     required
                   >
@@ -209,7 +209,7 @@ function VisitFormContent() {
                       'Visual inspection completed'
                     ].map((task) => (
                       <div key={task} className="flex items-center space-x-2">
-                        <Checkbox 
+                        <Checkbox
                           id={task}
                           checked={formData.tasksCompleted.includes(task)}
                           onCheckedChange={(checked) => handleTaskToggle(task, checked as boolean)}
@@ -222,8 +222,8 @@ function VisitFormContent() {
 
                 <div className="space-y-2">
                   <Label htmlFor="notes">Notes</Label>
-                  <Textarea 
-                    id="notes" 
+                  <Textarea
+                    id="notes"
                     placeholder="Add any additional notes about the visit..."
                     rows={3}
                     value={formData.notes}
@@ -231,9 +231,9 @@ function VisitFormContent() {
                   />
                 </div>
 
-                <Button 
-                  type="submit" 
-                  className="w-full mt-6" 
+                <Button
+                  type="submit"
+                  className="w-full mt-6"
                   disabled={isSubmitting || !formData.status}
                 >
                   {isSubmitting ? (
@@ -248,10 +248,10 @@ function VisitFormContent() {
                     </>
                   )}
                 </Button>
-                
+
                 {!isOnline && (
                   <p className="text-xs text-center text-gray-500 mt-2">
-                    Visit will be saved locally and synced when connection is restored.<br/>
+                    Visit will be saved locally and synced when connection is restored.<br />
                     Other workers will see updates when you come back online.
                   </p>
                 )}
@@ -267,7 +267,16 @@ function VisitFormContent() {
 export default function VisitFormPage() {
   return (
     <RealtimeProvider>
-      <VisitFormContent />
+      <Suspense fallback={
+        <div className="min-h-screen bg-gray-50 p-4 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading form...</p>
+          </div>
+        </div>
+      }>
+        <VisitFormContent />
+      </Suspense>
     </RealtimeProvider>
   );
 }

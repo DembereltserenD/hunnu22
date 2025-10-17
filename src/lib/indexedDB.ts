@@ -210,7 +210,7 @@ class IndexedDBService {
       const transaction = db.transaction([VISITS_STORE], 'readwrite');
       const store = transaction.objectStore(VISITS_STORE);
       const index = store.index('synced');
-      const request = index.openCursor(true);
+      const request = index.openCursor(IDBKeyRange.only(true));
 
       request.onsuccess = (event) => {
         const cursor = (event.target as IDBRequest).result;
@@ -231,7 +231,7 @@ class IndexedDBService {
       const transaction = db.transaction([SESSIONS_STORE], 'readwrite');
       const store = transaction.objectStore(SESSIONS_STORE);
       const index = store.index('synced');
-      const request = index.openCursor(true);
+      const request = index.openCursor(IDBKeyRange.only(true));
 
       request.onsuccess = (event) => {
         const cursor = (event.target as IDBRequest).result;

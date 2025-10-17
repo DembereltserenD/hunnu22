@@ -419,12 +419,21 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
           action: 'sync_success',
           itemId: `direct_${Date.now()}`,
           details: {
-            apartment_id: visitData.apartment_id,
-            worker_id: visitData.worker_id
+            apartment_id: visitData.apartment_id || undefined,
+            worker_id: visitData.worker_id || undefined
           }
         });
       } else {
-        await indexedDBService.addPendingVisit(visitData);
+        // Transform visitData to match PendingVisit interface
+        const pendingVisitData: Omit<PendingVisit, 'id' | 'timestamp' | 'synced'> = {
+          apartment_id: visitData.apartment_id || '',
+          worker_id: visitData.worker_id || '',
+          visit_date: visitData.visit_date,
+          status: visitData.status,
+          notes: visitData.notes,
+          tasks_completed: Array.isArray(visitData.tasks_completed) ? visitData.tasks_completed.map(task => String(task)) : []
+        };
+        await indexedDBService.addPendingVisit(pendingVisitData);
         await updatePendingCount();
       }
     } catch (error) {
@@ -436,8 +445,8 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         action: 'sync_failed',
         itemId: `direct_${Date.now()}`,
         details: {
-          apartment_id: visitData.apartment_id,
-          worker_id: visitData.worker_id,
+          apartment_id: visitData.apartment_id || undefined,
+          worker_id: visitData.worker_id || undefined,
           error: error instanceof Error ? error.message : 'Unknown error'
         }
       });

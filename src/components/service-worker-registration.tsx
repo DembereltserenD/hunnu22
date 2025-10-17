@@ -54,7 +54,7 @@ export function ServiceWorkerRegistration() {
       window.addEventListener('online', () => {
         navigator.serviceWorker.ready.then((registration) => {
           if ('sync' in registration) {
-            return registration.sync.register('sync-pending-data');
+            return (registration as any).sync.register('sync-pending-data');
           }
         });
       });
