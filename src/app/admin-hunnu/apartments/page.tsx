@@ -14,13 +14,10 @@ import type { Apartment } from "@/types/admin";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronDown, ChevronRight, Building2, MapPin, Table, Grid3X3, Loader2, Home } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useEntityFilters } from "@/hooks/use-entity-filters";
-import { e } from "framer-motion/dist/types.d-B50aGbjN";
 
 const apartmentColumns: ColumnDef<Apartment>[] = [
     {
@@ -399,7 +396,6 @@ function ApartmentsPageContent() {
     };
 
     const buildingGroups = groupApartmentsByBuilding();
-    const availableFloors = Array.from(new Set(apartments.map(apt => apt.floor))).sort((a, b) => a - b);
     const apartmentFilters = createApartmentFilters(buildings);
 
     return (
@@ -499,8 +495,8 @@ function ApartmentsPageContent() {
         </div>
     );
 }
-e
-xport default function ApartmentsPage() {
+
+export default function ApartmentsPage() {
     return (
         <Suspense fallback={<div>Loading...</div>}>
             <ApartmentsPageContent />

@@ -14,13 +14,10 @@ import type { Building } from "@/types/admin";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronDown, ChevronRight, Building2, MapPin, Table, Grid3X3, Loader2 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useEntityFilters } from "@/hooks/use-entity-filters";
-import { t } from "framer-motion/dist/types.d-B50aGbjN";
-import { t } from "framer-motion/dist/types.d-B50aGbjN";
 
 const buildingColumns: ColumnDef<Building>[] = [
     {
@@ -475,8 +472,9 @@ function BuildingsPageContent() {
             />
         </div>
     );
-} expor
-t default function BuildingsPage() {
+}
+
+export default function BuildingsPage() {
     return (
         <Suspense fallback={<div>Loading...</div>}>
             <BuildingsPageContent />

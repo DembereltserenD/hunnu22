@@ -16,8 +16,6 @@ import { useOptimisticUpdates } from "@/hooks/use-optimistic-updates";
 import { useLoadingStates } from "@/hooks/use-loading-states";
 import { handleAsyncOperation } from "@/lib/error-handling";
 import { showSuccessToast, showErrorForOperation } from "@/lib/toast-helpers";
-import { t } from "framer-motion/dist/types.d-B50aGbjN";
-import { t } from "framer-motion/dist/types.d-B50aGbjN";
 
 const workerColumns: ColumnDef<Worker>[] = [
     {
@@ -100,7 +98,7 @@ function WorkersPageContent() {
     });
 
     const loadWorkers = async (page = 1) => {
-        const result = await handleAsyncOperation(
+        await handleAsyncOperation(
             async () => {
                 const apiFilters = getApiFilters();
                 return await getWorkers({
@@ -222,8 +220,9 @@ function WorkersPageContent() {
             />
         </div>
     );
-} expor
-t default function WorkersPage() {
+}
+
+export default function WorkersPage() {
     return (
         <Suspense fallback={<div>Loading...</div>}>
             <WorkersPageContent />
