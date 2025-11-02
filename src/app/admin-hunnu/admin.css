@@ -1,0 +1,20 @@
+/* Admin pages specific styles */
+.admin-pages {
+  min-height: 100vh;
+  background-color: #f8fafc;
+}
+
+/* Ensure admin pages are always considered online */
+.admin-pages .offline-indicator {
+  display: none !important;
+}
+
+.admin-pages .online-indicator {
+  display: block !important;
+}
+
+/* Override any offline styling */
+.admin-pages [data-offline="true"] {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
