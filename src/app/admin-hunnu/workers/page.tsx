@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 
 import { EntityTable, type ColumnDef } from "@/components/admin/entity-table";
@@ -61,7 +61,7 @@ const workerFilters: FilterConfig[] = [
     }
 ];
 
-export default function WorkersPage() {
+function WorkersPageContent() {
     const router = useRouter();
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -216,5 +216,12 @@ export default function WorkersPage() {
                 loading={loadingStates.delete}
             />
         </div>
+    );
+} expor
+t default function WorkersPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <WorkersPageContent />
+        </Suspense>
     );
 }

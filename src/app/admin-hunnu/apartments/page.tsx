@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 
 import { EntityTable, type ColumnDef } from "@/components/admin/entity-table";
@@ -109,7 +109,7 @@ interface BuildingGroup {
     totalApartments: number;
 }
 
-export default function ApartmentsPage() {
+function ApartmentsPageContent() {
     const router = useRouter();
     const { toast } = useToast();
     const [apartments, setApartments] = useState<Apartment[]>([]);
@@ -493,5 +493,13 @@ export default function ApartmentsPage() {
                 loading={deleteDialog.loading}
             />
         </div>
+    );
+}
+e
+xport default function ApartmentsPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <ApartmentsPageContent />
+        </Suspense>
     );
 }

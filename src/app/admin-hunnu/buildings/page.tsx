@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 
 import { EntityTable, type ColumnDef } from "@/components/admin/entity-table";
@@ -82,7 +82,7 @@ const buildingFilters: FilterConfig[] = [
     }
 ];
 
-export default function BuildingsPage() {
+function BuildingsPageContent() {
     const router = useRouter();
     const { toast } = useToast();
     const [buildings, setBuildings] = useState<Building[]>([]);
@@ -469,5 +469,12 @@ export default function BuildingsPage() {
                 }
             />
         </div>
+    );
+} expor
+t default function BuildingsPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <BuildingsPageContent />
+        </Suspense>
     );
 }
