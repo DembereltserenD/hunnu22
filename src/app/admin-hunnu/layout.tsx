@@ -1,5 +1,8 @@
 'use client';
 
+// Force dynamic rendering for all admin pages
+export const dynamic = 'force-dynamic';
+
 import { AdminLayout } from "@/components/admin-layout";
 import { useEffect } from "react";
 import "./admin.css";
