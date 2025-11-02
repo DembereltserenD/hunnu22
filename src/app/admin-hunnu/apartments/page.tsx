@@ -1,5 +1,8 @@
 "use client";
 
+// Force dynamic rendering to prevent static generation issues
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 
@@ -17,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChevronDown, ChevronRight, Building2, MapPin, Table, Grid3X3, Loader2, Home } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useEntityFilters } from "@/hooks/use-entity-filters";
+import { e } from "framer-motion/dist/types.d-B50aGbjN";
 
 const apartmentColumns: ColumnDef<Apartment>[] = [
     {

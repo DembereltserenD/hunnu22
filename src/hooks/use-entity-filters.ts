@@ -10,19 +10,31 @@ export interface UseEntityFiltersOptions {
 export function useEntityFilters(options: UseEntityFiltersOptions = {}) {
   const { defaultFilters = {}, persistInUrl = true, storageKey } = options;
   const router = useRouter();
-  const searchParams = useSearchParams();
+  
+  // Safely get search params - handle SSR/static generation
+  let searchParams: URLSearchParams | null = null;
+  try {
+    searchParams = useSearchParams();
+  } catch (error) {
+    // During static generation, useSearchParams might not be available
+    console.warn('useSearchParams not available during static generation');
+  }
   
   // Initialize filters from URL params or default values
   const initializeFilters = useCallback(() => {
     const filters: Record<string, string> = { ...defaultFilters };
     
-    if (persistInUrl) {
+    if (persistInUrl && searchParams) {
       // Load from URL search params
-      searchParams.forEach((value, key) => {
-        if (key !== 'page') { // Don't include page in filters
-          filters[key] = value;
-        }
-      });
+      try {
+        searchParams.forEach((value, key) => {
+          if (key !== 'page') { // Don't include page in filters
+            filters[key] = value;
+          }
+        });
+      } catch (error) {
+        console.warn('Error reading search params:', error);
+      }
     } else if (storageKey && typeof window !== 'undefined') {
       // Load from localStorage
       try {
@@ -41,31 +53,43 @@ export function useEntityFilters(options: UseEntityFiltersOptions = {}) {
 
   const [filters, setFilters] = useState<Record<string, string>>(initializeFilters);
   const [searchQuery, setSearchQuery] = useState(() => {
-    return persistInUrl ? (searchParams.get('query') || '') : '';
+    if (persistInUrl && searchParams) {
+      try {
+        return searchParams.get('query') || '';
+      } catch (error) {
+        console.warn('Error getting query from search params:', error);
+        return '';
+      }
+    }
+    return '';
   });
 
   // Update URL when filters change
   useEffect(() => {
-    if (!persistInUrl) return;
+    if (!persistInUrl || typeof window === 'undefined') return;
 
-    const params = new URLSearchParams();
-    
-    // Add search query
-    if (searchQuery.trim()) {
-      params.set('query', searchQuery);
-    }
-    
-    // Add filters
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value && value.trim()) {
-        params.set(key, value);
+    try {
+      const params = new URLSearchParams();
+      
+      // Add search query
+      if (searchQuery.trim()) {
+        params.set('query', searchQuery);
       }
-    });
+      
+      // Add filters
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value && value.trim()) {
+          params.set(key, value);
+        }
+      });
 
-    // Update URL without triggering navigation
-    const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
-    if (newUrl !== window.location.search && newUrl !== window.location.pathname) {
-      router.replace(newUrl, { scroll: false });
+      // Update URL without triggering navigation
+      const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+      if (newUrl !== window.location.search && newUrl !== window.location.pathname) {
+        router.replace(newUrl, { scroll: false });
+      }
+    } catch (error) {
+      console.warn('Error updating URL:', error);
     }
   }, [filters, searchQuery, persistInUrl, router]);
 

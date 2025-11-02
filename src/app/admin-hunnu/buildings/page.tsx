@@ -1,5 +1,8 @@
 "use client";
 
+// Force dynamic rendering to prevent static generation issues
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 
@@ -16,6 +19,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronDown, ChevronRight, Building2, MapPin, Table, Grid3X3, Loader2 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useEntityFilters } from "@/hooks/use-entity-filters";
+import { t } from "framer-motion/dist/types.d-B50aGbjN";
+import { t } from "framer-motion/dist/types.d-B50aGbjN";
 
 const buildingColumns: ColumnDef<Building>[] = [
     {

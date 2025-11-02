@@ -1,5 +1,8 @@
 "use client";
 
+// Force dynamic rendering to prevent static generation issues
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 
@@ -13,6 +16,8 @@ import { useOptimisticUpdates } from "@/hooks/use-optimistic-updates";
 import { useLoadingStates } from "@/hooks/use-loading-states";
 import { handleAsyncOperation } from "@/lib/error-handling";
 import { showSuccessToast, showErrorForOperation } from "@/lib/toast-helpers";
+import { t } from "framer-motion/dist/types.d-B50aGbjN";
+import { t } from "framer-motion/dist/types.d-B50aGbjN";
 
 const workerColumns: ColumnDef<Worker>[] = [
     {
