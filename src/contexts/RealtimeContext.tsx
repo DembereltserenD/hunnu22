@@ -12,12 +12,27 @@ type Worker = Tables['workers']['Row'];
 type Building = Tables['buildings']['Row'];
 type Apartment = Tables['apartments']['Row'];
 
+// Define PhoneIssue type locally until Supabase types are updated
+interface PhoneIssue {
+  id: string;
+  apartment_id: string;
+  phone_number: string;
+  issue_type: 'smoke_detector' | 'domophone' | 'light_bulb';
+  status: 'open' | 'in_progress' | 'resolved';
+  worker_id?: string | null;
+  description?: string | null;
+  resolved_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 interface RealtimeContextType {
   visits: Visit[];
   activeSessions: ActiveSession[];
   workers: Worker[];
   buildings: Building[];
   apartments: Apartment[];
+  phoneIssues: PhoneIssue[];
   currentWorker: Worker | null;
   setCurrentWorker: (worker: Worker | null) => void;
   startSession: (apartmentId: string) => Promise<void>;
@@ -40,6 +55,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [apartments, setApartments] = useState<Apartment[]>([]);
+  const [phoneIssues, setPhoneIssues] = useState<PhoneIssue[]>([]);
   const [currentWorker, setCurrentWorker] = useState<Worker | null>(null);
 
   // Load current worker from localStorage on mount
@@ -133,12 +149,13 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         setIsLoading(true);
         console.log('RealtimeContext - Starting to load data...');
 
-        const [workersRes, buildingsRes, apartmentsRes, visitsRes, sessionsRes] = await Promise.all([
+        const [workersRes, buildingsRes, apartmentsRes, visitsRes, sessionsRes, phoneIssuesRes] = await Promise.all([
           supabase.from('workers').select('*'),
           supabase.from('buildings').select('*'),
           supabase.from('apartments').select('*'),
           supabase.from('visits').select('*').order('visit_date', { ascending: false }),
-          supabase.from('active_sessions').select('*').eq('status', 'active')
+          supabase.from('active_sessions').select('*').eq('status', 'active'),
+          supabase.from('phone_issues').select('*').order('created_at', { ascending: false })
         ]);
 
         console.log('RealtimeContext - Data loaded:', {
@@ -146,7 +163,8 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
           buildings: buildingsRes.data?.length || 0,
           apartments: apartmentsRes.data?.length || 0,
           visits: visitsRes.data?.length || 0,
-          sessions: sessionsRes.data?.length || 0
+          sessions: sessionsRes.data?.length || 0,
+          phoneIssues: phoneIssuesRes.data?.length || 0
         });
 
         console.log('RealtimeContext - Workers response:', workersRes);
@@ -156,6 +174,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         if (apartmentsRes.data) setApartments(apartmentsRes.data);
         if (visitsRes.data) setVisits(visitsRes.data);
         if (sessionsRes.data) setActiveSessions(sessionsRes.data);
+        if (phoneIssuesRes.data) setPhoneIssues(phoneIssuesRes.data);
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -461,6 +480,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     workers,
     buildings,
     apartments,
+    phoneIssues,
     currentWorker,
     setCurrentWorker,
     startSession,
