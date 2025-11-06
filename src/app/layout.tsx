@@ -41,9 +41,9 @@ export default function RootLayout({
       <body className={inter.className} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
-          defaultTheme="light"
+          defaultTheme="system"
           enableSystem
-          disableTransitionOnChange
+          storageKey="maintenance-tracker-theme"
         >
           {children}
           <ServiceWorkerRegistration />

@@ -66,7 +66,14 @@ export default function WorkerDashboardPage() {
                 .order('created_at', { ascending: false });
 
             if (error) {
-                throw error;
+                console.error('Supabase error:', error);
+                toast({
+                    title: 'Error',
+                    description: 'Failed to load maintenance records. Please check your connection.',
+                    variant: 'destructive'
+                });
+                setRecords([]);
+                return;
             }
 
             // Transform the data to match our interface
@@ -86,13 +93,19 @@ export default function WorkerDashboardPage() {
             }));
 
             setRecords(transformedRecords);
-        } catch (error) {
-            console.error('Error loading maintenance records:', error);
+        } catch (error: any) {
+            console.error('Error loading maintenance records:', {
+                message: error?.message || 'Unknown error',
+                details: error?.toString() || '',
+                hint: error?.hint || '',
+                code: error?.code || ''
+            });
             toast({
                 title: 'Error',
-                description: 'Failed to load maintenance records',
+                description: 'Failed to load maintenance records. Please refresh the page.',
                 variant: 'destructive'
             });
+            setRecords([]);
         } finally {
             setLoading(false);
         }

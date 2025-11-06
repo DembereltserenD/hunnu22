@@ -1,503 +1,309 @@
-/* Admin pages specific styles - Force light theme with proper contrast */
+/* Admin pages specific styles - Support both light and dark themes + Responsive */
 .admin-pages {
   min-height: 100vh;
-  background-color: #f9fafb !important;
-  color: #111827 !important;
-  color-scheme: light !important;
+  transition: background-color 0.2s, color 0.2s;
 }
 
-/* Force light theme for all admin page elements */
-.admin-pages *,
-.admin-pages *:before,
-.admin-pages *:after {
-  color-scheme: light !important;
+/* Light theme (default) */
+.admin-pages {
+  background-color: #f9fafb;
+  color: #111827;
 }
 
-/* Override body styles for admin pages */
-.admin-pages body,
-html:has(.admin-pages) body {
-  background-color: #f9fafb !important;
-  color: #111827 !important;
+/* Dark theme */
+.dark .admin-pages {
+  background-color: #0f172a;
+  color: #f1f5f9;
 }
 
-/* Force light theme CSS variables for admin pages with proper contrast */
-.admin-pages,
-.admin-pages.dark,
-.admin-pages .dark,
-html:has(.admin-pages),
-html:has(.admin-pages).dark,
-html:has(.admin-pages) .dark {
-  /* Light backgrounds */
-  --background: 249 250 251 !important; /* #f9fafb - light gray */
-  --card: 255 255 255 !important; /* #ffffff - white */
-  --popover: 255 255 255 !important; /* #ffffff - white */
-  --secondary: 243 244 246 !important; /* #f3f4f6 - light gray */
-  --muted: 243 244 246 !important; /* #f3f4f6 - light gray */
-  --accent: 243 244 246 !important; /* #f3f4f6 - light gray */
-  
-  /* Dark text for contrast on light backgrounds */
-  --foreground: 17 24 39 !important; /* #111827 - dark gray */
-  --card-foreground: 17 24 39 !important; /* #111827 - dark gray */
-  --popover-foreground: 17 24 39 !important; /* #111827 - dark gray */
-  --secondary-foreground: 17 24 39 !important; /* #111827 - dark gray */
-  --accent-foreground: 17 24 39 !important; /* #111827 - dark gray */
-  --muted-foreground: 75 85 99 !important; /* #4b5563 - medium gray */
-  
-  /* Primary colors with proper contrast */
-  --primary: 37 99 235 !important; /* #2563eb - blue */
-  --primary-foreground: 255 255 255 !important; /* #ffffff - white (only on blue background) */
-  
-  /* Destructive colors with proper contrast */
-  --destructive: 220 38 38 !important; /* #dc2626 - red */
-  --destructive-foreground: 255 255 255 !important; /* #ffffff - white (only on red background) */
-  
-  /* Borders and inputs */
-  --border: 209 213 219 !important; /* #d1d5db - gray border */
-  --input: 209 213 219 !important; /* #d1d5db - gray border */
-  --ring: 37 99 235 !important; /* #2563eb - blue focus ring */
+/* Light theme CSS variables */
+.admin-pages {
+  --background: 249 250 251;
+  --card: 255 255 255;
+  --popover: 255 255 255;
+  --secondary: 243 244 246;
+  --muted: 243 244 246;
+  --accent: 243 244 246;
+  --foreground: 17 24 39;
+  --card-foreground: 17 24 39;
+  --popover-foreground: 17 24 39;
+  --secondary-foreground: 17 24 39;
+  --accent-foreground: 17 24 39;
+  --muted-foreground: 75 85 99;
+  --primary: 37 99 235;
+  --primary-foreground: 255 255 255;
+  --destructive: 220 38 38;
+  --destructive-foreground: 255 255 255;
+  --border: 209 213 219;
+  --input: 209 213 219;
+  --ring: 37 99 235;
 }
 
-/* Ensure admin pages are always considered online */
-.admin-pages .offline-indicator {
-  display: none !important;
+/* Dark theme CSS variables */
+.dark .admin-pages {
+  --background: 15 23 42;
+  --card: 30 41 59;
+  --popover: 30 41 59;
+  --secondary: 51 65 85;
+  --muted: 51 65 85;
+  --accent: 51 65 85;
+  --foreground: 241 245 249;
+  --card-foreground: 241 245 249;
+  --popover-foreground: 241 245 249;
+  --secondary-foreground: 241 245 249;
+  --accent-foreground: 241 245 249;
+  --muted-foreground: 148 163 184;
+  --primary: 59 130 246;
+  --primary-foreground: 255 255 255;
+  --destructive: 239 68 68;
+  --destructive-foreground: 255 255 255;
+  --border: 51 65 85;
+  --input: 51 65 85;
+  --ring: 59 130 246;
 }
 
-.admin-pages .online-indicator {
-  display: block !important;
-}
-
-/* Override any offline styling */
-.admin-pages [data-offline="true"] {
-  opacity: 1 !important;
-  pointer-events: auto !important;
-}
-
-/* Comprehensive text visibility fixes */
+/* Text elements - Light theme */
 .admin-pages h1,
 .admin-pages h2,
 .admin-pages h3,
 .admin-pages h4,
 .admin-pages h5,
 .admin-pages h6 {
-  color: #111827 !important; /* Dark text for headings */
+  color: #111827;
+  transition: color 0.2s;
 }
 
 .admin-pages p,
 .admin-pages span,
 .admin-pages div,
 .admin-pages label {
-  color: #374151 !important; /* Dark gray for body text */
+  color: #374151;
+  transition: color 0.2s;
 }
 
-.admin-pages .text-muted-foreground {
-  color: #6b7280 !important; /* Medium gray for muted text */
+/* Text elements - Dark theme */
+.dark .admin-pages h1,
+.dark .admin-pages h2,
+.dark .admin-pages h3,
+.dark .admin-pages h4,
+.dark .admin-pages h5,
+.dark .admin-pages h6 {
+  color: #f1f5f9;
 }
 
-/* Button text visibility */
+.dark .admin-pages p,
+.dark .admin-pages span,
+.dark .admin-pages div,
+.dark .admin-pages label {
+  color: #cbd5e1;
+}
+
+/* Buttons - Light theme */
 .admin-pages button {
-  color: #374151 !important; /* Dark text for buttons */
+  color: #374151;
+  transition: all 0.2s;
 }
 
 .admin-pages button.bg-primary,
 .admin-pages .bg-primary {
-  color: #ffffff !important; /* White text on primary (blue) background */
+  color: #ffffff;
+  background-color: #2563eb;
 }
 
 .admin-pages button.bg-destructive,
 .admin-pages .bg-destructive {
-  color: #ffffff !important; /* White text on destructive (red) background */
+  color: #ffffff;
+  background-color: #dc2626;
 }
 
-/* Input and form element text */
+/* Buttons - Dark theme */
+.dark .admin-pages button {
+  color: #cbd5e1;
+}
+
+.dark .admin-pages button.bg-primary,
+.dark .admin-pages .bg-primary {
+  color: #ffffff;
+  background-color: #3b82f6;
+}
+
+.dark .admin-pages button.bg-destructive,
+.dark .admin-pages .bg-destructive {
+  color: #ffffff;
+  background-color: #ef4444;
+}
+
+/* Inputs - Light theme */
 .admin-pages input,
 .admin-pages textarea,
 .admin-pages select {
-  color: #111827 !important; /* Dark text in form fields */
-  background-color: #ffffff !important; /* White background for inputs */
+  color: #111827;
+  background-color: #ffffff;
+  border-color: #d1d5db;
+  transition: all 0.2s;
 }
 
 .admin-pages input::placeholder,
 .admin-pages textarea::placeholder {
-  color: #9ca3af !important; /* Gray placeholder text */
+  color: #9ca3af;
 }
 
-/* Table text visibility */
+/* Inputs - Dark theme */
+.dark .admin-pages input,
+.dark .admin-pages textarea,
+.dark .admin-pages select {
+  color: #f1f5f9;
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+.dark .admin-pages input::placeholder,
+.dark .admin-pages textarea::placeholder {
+  color: #64748b;
+}
+
+/* Tables - Light theme */
 .admin-pages table,
 .admin-pages th,
 .admin-pages td {
-  color: #374151 !important; /* Dark text in tables */
+  color: #374151;
+  transition: all 0.2s;
 }
 
 .admin-pages th {
-  color: #111827 !important; /* Darker text for table headers */
-  font-weight: 600 !important;
+  color: #111827;
+  font-weight: 600;
+  background-color: #f9fafb;
 }
 
-/* Card text visibility */
+.admin-pages td {
+  background-color: #ffffff;
+}
+
+/* Tables - Dark theme */
+.dark .admin-pages table,
+.dark .admin-pages th,
+.dark .admin-pages td {
+  color: #cbd5e1;
+}
+
+.dark .admin-pages th {
+  color: #f1f5f9;
+  background-color: #1e293b;
+}
+
+.dark .admin-pages td {
+  background-color: #0f172a;
+}
+
+/* Cards - Light theme */
 .admin-pages .bg-card {
-  background-color: #ffffff !important;
-  color: #374151 !important;
+  background-color: #ffffff;
+  color: #374151;
+  transition: all 0.2s;
 }
 
-.admin-pages .text-card-foreground {
-  color: #111827 !important;
+/* Cards - Dark theme */
+.dark .admin-pages .bg-card {
+  background-color: #1e293b;
+  color: #cbd5e1;
 }
 
-/* Link text visibility */
+/* Links */
 .admin-pages a {
-  color: #2563eb !important; /* Blue for links */
+  color: #2563eb;
+  transition: color 0.2s;
 }
 
 .admin-pages a:hover {
-  color: #1d4ed8 !important; /* Darker blue on hover */
+  color: #1d4ed8;
 }
 
-/* Badge and status text */
-.admin-pages .badge,
-.admin-pages [class*="badge"] {
-  color: #374151 !important;
+.dark .admin-pages a {
+  color: #3b82f6;
 }
 
-/* Navigation text (already handled in component but adding backup) */
+.dark .admin-pages a:hover {
+  color: #60a5fa;
+}
+
+/* Navigation */
 .admin-pages nav a {
-  color: #4b5563 !important;
+  color: #4b5563;
+  transition: all 0.2s;
 }
 
 .admin-pages nav a:hover {
-  color: #111827 !important;
+  color: #111827;
+  background-color: #f3f4f6;
 }
 
 .admin-pages nav a.active,
 .admin-pages nav a[aria-current="page"] {
-  color: #ffffff !important; /* White text on active nav items */
-  background-color: #2563eb !important; /* Blue background for active items */
+  color: #ffffff;
+  background-color: #2563eb;
 }
 
-/* Specific overrides for shadcn/ui components */
-.admin-pages .text-foreground {
-  color: #111827 !important;
+.dark .admin-pages nav a {
+  color: #94a3b8;
 }
 
-.admin-pages .bg-background {
-  background-color: #f9fafb !important;
+.dark .admin-pages nav a:hover {
+  color: #f1f5f9;
+  background-color: #334155;
 }
 
-.admin-pages .text-primary {
-  color: #2563eb !important;
+.dark .admin-pages nav a.active,
+.dark .admin-pages nav a[aria-current="page"] {
+  color: #ffffff;
+  background-color: #3b82f6;
 }
 
-.admin-pages .text-secondary {
-  color: #6b7280 !important;
+/* Muted text */
+.admin-pages .text-muted-foreground {
+  color: #6b7280;
 }
 
-/* Ensure proper contrast for all text elements */
-.admin-pages * {
-  /* Prevent any white text on light backgrounds */
+.dark .admin-pages .text-muted-foreground {
+  color: #94a3b8;
 }
 
-.admin-pages *:not(.bg-primary):not(.bg-destructive):not(.bg-blue-600):not(.bg-red-600) {
-  color: #374151 !important;
+/* Borders */
+.admin-pages {
+  border-color: #e5e7eb;
 }
 
-/* Override any potential white text issues */
-.admin-pages .text-white:not(.bg-primary):not(.bg-destructive):not(.bg-blue-600):not(.bg-red-600) {
-  color: #111827 !important;
-}
-/* 
-Additional UI component fixes for text visibility */
-
-/* Shadcn/UI Table components */
-.admin-pages .table th {
-  color: #111827 !important;
-  font-weight: 600 !important;
-  background-color: #f9fafb !important;
+.dark .admin-pages {
+  border-color: #334155;
 }
 
-.admin-pages .table td {
-  color: #374151 !important;
-  background-color: #ffffff !important;
+/* Shadows - lighter in light mode, more prominent in dark mode */
+.admin-pages .shadow {
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
 }
 
-/* Shadcn/UI Button components */
-.admin-pages button[data-variant="default"],
-.admin-pages .btn-default,
-.admin-pages button:not([data-variant]):not(.btn-outline):not(.btn-ghost) {
-  background-color: #111827 !important;
-  color: #ffffff !important;
+.dark .admin-pages .shadow {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
 }
 
-.admin-pages button[data-variant="outline"],
-.admin-pages .btn-outline {
-  background-color: #ffffff !important;
-  color: #374151 !important;
-  border-color: #d1d5db !important;
-}
-
-.admin-pages button[data-variant="ghost"],
-.admin-pages .btn-ghost {
-  background-color: transparent !important;
-  color: #374151 !important;
-}
-
-.admin-pages button[data-variant="ghost"]:hover,
-.admin-pages .btn-ghost:hover {
-  background-color: #f3f4f6 !important;
-  color: #111827 !important;
-}
-
-/* Fix for view mode buttons and similar toggle buttons */
-.admin-pages button.bg-primary,
-.admin-pages .bg-primary,
-.admin-pages button[class*="bg-primary"] {
-  background-color: #2563eb !important;
-  color: #ffffff !important;
-}
-
-/* Ensure all buttons have proper text contrast */
-.admin-pages button {
-  color: #374151 !important;
-}
-
-.admin-pages button.bg-primary,
-.admin-pages button.bg-destructive,
-.admin-pages button.bg-blue-600,
-.admin-pages button.bg-red-600,
-.admin-pages button[data-variant="default"],
-.admin-pages .bg-primary,
-.admin-pages .bg-destructive {
-  color: #ffffff !important;
-}
-
-/* Shadcn/UI Input components */
-.admin-pages input[type="text"],
-.admin-pages input[type="email"],
-.admin-pages input[type="password"],
-.admin-pages input[type="number"],
-.admin-pages textarea,
-.admin-pages select {
-  background-color: #ffffff !important;
-  color: #111827 !important;
-  border-color: #d1d5db !important;
-}
-
+/* Focus states - visible in both modes */
 .admin-pages input:focus,
 .admin-pages textarea:focus,
-.admin-pages select:focus {
-  border-color: #2563eb !important;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1) !important;
+.admin-pages select:focus,
+.admin-pages button:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
 }
 
-/* Shadcn/UI Card components */
-.admin-pages .card {
-  background-color: #ffffff !important;
-  color: #374151 !important;
-  border-color: #e5e7eb !important;
+.dark .admin-pages input:focus,
+.dark .admin-pages textarea:focus,
+.dark .admin-pages select:focus,
+.dark .admin-pages button:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
 }
 
-.admin-pages .card-header {
-  color: #111827 !important;
-}
-
-.admin-pages .card-title {
-  color: #111827 !important;
-  font-weight: 600 !important;
-}
-
-.admin-pages .card-description {
-  color: #6b7280 !important;
-}
-
-.admin-pages .card-content {
-  color: #374151 !important;
-}
-
-/* Shadcn/UI Badge components */
-.admin-pages .badge {
-  background-color: #f3f4f6 !important;
-  color: #374151 !important;
-  border-color: #d1d5db !important;
-}
-
-.admin-pages .badge[data-variant="default"] {
-  background-color: #111827 !important;
-  color: #ffffff !important;
-}
-
-.admin-pages .badge[data-variant="destructive"] {
-  background-color: #dc2626 !important;
-  color: #ffffff !important;
-}
-
-.admin-pages .badge[data-variant="outline"] {
-  background-color: transparent !important;
-  color: #374151 !important;
-  border-color: #d1d5db !important;
-}
-
-.admin-pages .badge[data-variant="secondary"] {
-  background-color: #f3f4f6 !important;
-  color: #374151 !important;
-}
-
-/* Pagination components */
-.admin-pages .pagination a {
-  color: #374151 !important;
-  background-color: #ffffff !important;
-  border-color: #d1d5db !important;
-}
-
-.admin-pages .pagination a:hover {
-  background-color: #f3f4f6 !important;
-  color: #111827 !important;
-}
-
-.admin-pages .pagination a[aria-current="page"] {
-  background-color: #2563eb !important;
-  color: #ffffff !important;
-  border-color: #2563eb !important;
-}
-
-/* Loading spinner */
-.admin-pages .loading-spinner {
-  color: #2563eb !important;
-}
-
-/* Alert/Toast components */
-.admin-pages .alert {
-  background-color: #ffffff !important;
-  color: #374151 !important;
-  border-color: #d1d5db !important;
-}
-
-.admin-pages .alert-destructive {
-  background-color: #fef2f2 !important;
-  color: #991b1b !important;
-  border-color: #fecaca !important;
-}
-
-.admin-pages .alert-success {
-  background-color: #f0fdf4 !important;
-  color: #166534 !important;
-  border-color: #bbf7d0 !important;
-}
-
-/* Dropdown/Select components */
-.admin-pages .select-trigger {
-  background-color: #ffffff !important;
-  color: #374151 !important;
-  border-color: #d1d5db !important;
-}
-
-.admin-pages .select-content {
-  background-color: #ffffff !important;
-  color: #374151 !important;
-  border-color: #d1d5db !important;
-}
-
-.admin-pages .select-item {
-  color: #374151 !important;
-}
-
-.admin-pages .select-item:hover {
-  background-color: #f3f4f6 !important;
-  color: #111827 !important;
-}
-
-/* Dialog/Modal components */
-.admin-pages .dialog-content {
-  background-color: #ffffff !important;
-  color: #374151 !important;
-}
-
-.admin-pages .dialog-header {
-  color: #111827 !important;
-}
-
-.admin-pages .dialog-title {
-  color: #111827 !important;
-  font-weight: 600 !important;
-}
-
-.admin-pages .dialog-description {
-  color: #6b7280 !important;
-}
-
-/* Form labels */
-.admin-pages label {
-  color: #111827 !important;
-  font-weight: 500 !important;
-}
-
-/* Error messages */
-.admin-pages .error-message,
-.admin-pages .text-destructive {
-  color: #dc2626 !important;
-}
-
-/* Success messages */
-.admin-pages .success-message,
-.admin-pages .text-success {
-  color: #059669 !important;
-}
-
-/* Ensure icons have proper color */
-.admin-pages svg {
-  color: inherit !important;
-}
-
-/* Override any remaining white text issues */
-.admin-pages .text-white:not(.bg-primary):not(.bg-destructive):not(.bg-blue-600):not(.bg-red-600):not(.bg-green-600):not(.bg-yellow-600):not(.bg-purple-600):not(.bg-indigo-600) {
-  color: #374151 !important;
-}/
-* Navigation specific fixes */
-.admin-pages nav a {
-  color: #374151 !important;
-  text-decoration: none !important;
-}
-
-.admin-pages nav a:hover {
-  color: #111827 !important;
-  background-color: #f3f4f6 !important;
-}
-
-.admin-pages nav a.bg-blue-600,
-.admin-pages nav a[style*="background-color: rgb(37, 99, 235)"] {
-  color: #ffffff !important;
-  background-color: #2563eb !important;
-}
-
-/* Sidebar header text */
-.admin-pages .sidebar-header h2 {
-  color: #111827 !important;
-  font-weight: 600 !important;
-}
-
-/* Mobile menu button */
-.admin-pages .mobile-menu-button {
-  color: #374151 !important;
-  background-color: #ffffff !important;
-  border-color: #d1d5db !important;
-}
-
-.admin-pages .mobile-menu-button:hover {
-  background-color: #f3f4f6 !important;
-  color: #111827 !important;
-}
-
-/* Ensure all text in admin pages has minimum contrast */
-.admin-pages * {
-  /* Prevent invisible text */
-  text-shadow: none !important;
-}
-
-/* Force visibility for any potentially hidden text */
-.admin-pages .invisible-text,
-.admin-pages .hidden-text {
-  color: #374151 !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-}/* 
-Prevent navigation duplication issues */
+/* Prevent navigation duplication */
 .admin-pages nav {
   position: relative;
 }
@@ -508,91 +314,183 @@ Prevent navigation duplication issues */
   content: none !important;
 }
 
-.admin-pages nav a {
-  position: relative;
-  display: flex !important;
-}
-
-.admin-pages nav a::before,
-.admin-pages nav a::after {
-  display: none !important;
-  content: none !important;
-}
-
-/* Ensure no duplicate rendering */
-.admin-pages .sidebar-nav {
-  overflow: hidden;
-}
-
-/* Fix any potential z-index issues */
-.admin-pages nav a {
-  z-index: 1;
-}
-
-/* Prevent text duplication */
-.admin-pages nav a span {
-  display: inline !important;
-}
-
-/* Remove any potential duplicate content */
-.admin-pages nav *::before,
-.admin-pages nav *::after {
-  content: none !important;
-  display: none !important;
-}/* Enh
-anced navigation duplication prevention */
 .admin-pages .sidebar-nav {
   contain: layout style paint;
   isolation: isolate;
 }
 
-.admin-pages .sidebar-nav a {
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  will-change: auto;
+/* Responsive Layout Adaptations */
+@media (max-width: 640px) {
+  .admin-pages {
+    padding: 0.75rem;
+  }
+  
+  .admin-pages .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Stack form fields vertically on mobile */
+  .admin-pages form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  /* Full-width inputs on mobile */
+  .admin-pages input,
+  .admin-pages textarea,
+  .admin-pages select {
+    width: 100%;
+    min-height: 44px;
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+  
+  /* Larger buttons for touch */
+  .admin-pages button {
+    min-height: 44px;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+  }
+  
+  /* Stack button groups vertically */
+  .admin-pages .button-group {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .admin-pages .button-group button {
+    width: 100%;
+  }
 }
 
-/* Ensure single rendering pass */
-.admin-pages nav {
-  transform-style: flat;
+/* Tablet adjustments */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .admin-pages {
+    padding: 1rem;
+  }
+  
+  /* 2-column grid on tablets */
+  .admin-pages .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
-/* Force layout recalculation to prevent visual artifacts */
-.admin-pages .sidebar-nav > * {
-  position: relative;
-  z-index: 1;
-  clear: both;
+/* Desktop */
+@media (min-width: 1025px) {
+  .admin-pages {
+    padding: 1.5rem;
+  }
+  
+  /* Multi-column layouts */
+  .admin-pages .grid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
 }
 
-/* Fix for view mode toggle buttons (Table/Grouped) */
-.admin-pages button[class*="variant-default"],
-.admin-pages button:has(+ button[class*="variant-outline"]) {
-  background-color: #2563eb !important;
-  color: #ffffff !important;
-  border-color: #2563eb !important;
+/* Responsive Tables */
+@media (max-width: 768px) {
+  /* Convert tables to cards on mobile */
+  .admin-pages table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .admin-pages thead {
+    display: none;
+  }
+  
+  .admin-pages tbody,
+  .admin-pages tr,
+  .admin-pages td {
+    display: block;
+  }
+  
+  .admin-pages tr {
+    margin-bottom: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background-color: var(--card);
+  }
+  
+  .admin-pages td {
+    text-align: left;
+    padding: 0.5rem 0;
+    border: none;
+  }
+  
+  .admin-pages td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--muted-foreground);
+  }
 }
 
-.admin-pages button[class*="variant-outline"] {
-  background-color: #ffffff !important;
-  color: #374151 !important;
-  border-color: #d1d5db !important;
+/* Touch-friendly spacing */
+.admin-pages a,
+.admin-pages button {
+  min-height: 44px;
+  min-width: 44px;
+  touch-action: manipulation;
 }
 
-/* Specific fix for apartments page view mode buttons */
-.admin-pages .flex.items-center.gap-2 button {
-  color: #374151 !important;
-  background-color: #ffffff !important;
-  border: 1px solid #d1d5db !important;
+/* Disable hover effects on touch devices */
+@media (hover: none) {
+  .admin-pages button:hover,
+  .admin-pages a:hover {
+    background-color: inherit;
+  }
+  
+  .admin-pages button:active,
+  .admin-pages a:active {
+    transform: scale(0.98);
+  }
 }
 
-.admin-pages .flex.items-center.gap-2 button[class*="default"] {
-  background-color: #2563eb !important;
-  color: #ffffff !important;
-  border-color: #2563eb !important;
+/* Modals - Full screen on mobile */
+@media (max-width: 640px) {
+  .admin-pages [role="dialog"],
+  .admin-pages .modal {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    margin: 0;
+  }
 }
 
-/* Ensure GroupedAdd and similar buttons have proper contrast */
-.admin-pages button:not([class*="outline"]):not([class*="ghost"]) {
-  background-color: #2563eb !important;
-  color: #ffffff !important;
+/* Typography scaling */
+.admin-pages h1 {
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+.admin-pages h2 {
+  font-size: clamp(1.25rem, 3vw, 2rem);
+}
+
+.admin-pages h3 {
+  font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+}
+
+.admin-pages p,
+.admin-pages span,
+.admin-pages div,
+.admin-pages label {
+  font-size: clamp(0.875rem, 2vw, 1rem);
+  line-height: 1.6;
+}
+
+/* Prevent text overflow */
+.admin-pages {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }

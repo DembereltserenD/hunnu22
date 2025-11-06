@@ -35,11 +35,15 @@ export default function BuildingDetailPage() {
         const supabase = createClient();
 
         // Get building
-        const { data: building } = await supabase
+        const { data: building, error: buildingError } = await supabase
           .from('buildings')
           .select('*')
           .eq('id', buildingId)
           .single();
+
+        if (buildingError) {
+          console.error('Error fetching building:', buildingError);
+        }
 
         // Get apartments for this building
         const { data: apartments, error: apartmentsError } = await supabase
@@ -56,11 +60,15 @@ export default function BuildingDetailPage() {
         const apartmentIds = apartments?.map(apt => apt.id) || [];
         let phoneIssues: any[] = [];
         if (apartmentIds.length > 0) {
-          const { data: issues } = await supabase
+          const { data: issues, error: issuesError } = await supabase
             .from('phone_issues')
             .select('*')
             .in('apartment_id', apartmentIds)
             .order('created_at', { ascending: false });
+
+          if (issuesError) {
+            console.error('Error fetching phone issues:', issuesError);
+          }
 
           // Get worker data separately
           if (issues && issues.length > 0) {
@@ -77,65 +85,21 @@ export default function BuildingDetailPage() {
                 worker: workers?.find(worker => worker.id === issue.worker_id) || null
               }));
             } else {
-              phoneIssues = issues;
+              phoneIssues = issues || [];
             }
           }
         }
-
-        console.log('Building Detail Data Loaded:', {
-          buildingId,
-          building: building ? { id: building.id, name: building.name } : null,
-          apartments: apartments?.length || 0,
-          phoneIssues: phoneIssues?.length || 0,
-          apartmentDetails: apartments?.map(apt => ({ id: apt.id, unit: apt.unit_number, building_id: apt.building_id }))
-        });
-
-        // Enhanced debugging for the specific building
-        if (buildingId === '35e45812-749a-453a-aa62-49b5999218fa') {
-          console.log('DEBUG: Building 222 (35e45812-749a-453a-aa62-49b5999218fa):', {
-            buildingFound: !!building,
-            buildingData: building,
-            apartmentsFound: apartments?.length || 0,
-            apartmentsList: apartments,
-            queryBuildingId: buildingId
-          });
-
-          // Let's also check if there are ANY apartments in the database
-          const { data: allApartments } = await supabase
-            .from('apartments')
-            .select('*');
-
-          console.log('DEBUG: All apartments in database:', {
-            total: allApartments?.length || 0,
-            sample: allApartments?.slice(0, 5).map(apt => ({
-              id: apt.id,
-              unit: apt.unit_number,
-              building_id: apt.building_id
-            }))
-          });
-
-          // Check if any apartments have this building_id
-          const matchingApartments = allApartments?.filter(apt => apt.building_id === buildingId);
-          console.log('DEBUG: Apartments matching building ID:', {
-            count: matchingApartments?.length || 0,
-            apartments: matchingApartments
-          });
-        }
-
-        console.log('Building data loaded:', {
-          building: building,
-          apartments: apartments?.length || 0,
-          phoneIssues: phoneIssues?.length || 0,
-          phoneIssuesDetails: phoneIssues?.slice(0, 3) // Show first 3 for debugging
-        });
 
         setData({
           building: building || null,
           apartments: apartments || [],
           phoneIssues: phoneIssues || []
         });
-      } catch (error) {
-        console.error('Error loading building data:', error);
+      } catch (error: any) {
+        console.error('Error loading building data:', {
+          message: error?.message || 'Unknown error',
+          name: error?.name || 'Error'
+        });
       } finally {
         setLoading(false);
       }
