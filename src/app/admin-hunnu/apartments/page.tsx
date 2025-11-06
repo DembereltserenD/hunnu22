@@ -15,7 +15,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronDown, ChevronRight, Building2, MapPin, Table, Grid3X3, Loader2, Home } from "lucide-react";
+import { ChevronDown, ChevronRight, Building2, MapPin, Table, Grid3X3, Loader2, Home, Upload } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useEntityFilters } from "@/hooks/use-entity-filters";
 
@@ -258,9 +258,17 @@ function ApartmentsPageContent() {
     };
 
     const groupApartmentsByBuilding = (): BuildingGroup[] => {
+        // Add safety check for apartments array
+        if (!apartments || !Array.isArray(apartments)) {
+            return [];
+        }
+
         const grouped = apartments.reduce((acc, apartment) => {
+            // Add safety checks for apartment data
+            if (!apartment) return acc;
+
             const building = (apartment as GroupedApartment).building;
-            if (!building) return acc;
+            if (!building || !building.id) return acc;
 
             const buildingId = building.id;
             if (!acc[buildingId]) {
@@ -272,6 +280,9 @@ function ApartmentsPageContent() {
             }
 
             const floor = apartment.floor;
+            // Add safety check for floor number
+            if (typeof floor !== 'number' || isNaN(floor)) return acc;
+
             if (!acc[buildingId].floors[floor]) {
                 acc[buildingId].floors[floor] = [];
             }
@@ -290,9 +301,9 @@ function ApartmentsPageContent() {
                 .sort((a, b) => a - b)
                 .map(floor => ({
                     floor,
-                    apartments: group.floors[floor].sort((a, b) => a.unit_number.localeCompare(b.unit_number))
+                    apartments: (group.floors[floor] || []).sort((a, b) => (a.unit_number || '').localeCompare(b.unit_number || ''))
                 }))
-        })).sort((a, b) => a.building.name.localeCompare(b.building.name));
+        })).sort((a, b) => (a.building?.name || '').localeCompare(b.building?.name || ''));
     };
 
     const renderBuildingGroup = (buildingGroup: BuildingGroup) => {
@@ -429,6 +440,14 @@ function ApartmentsPageContent() {
                     </Button>
                     <Button onClick={handleAdd}>
                         Add Apartment
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() => router.push("/admin-hunnu/apartments/bulk")}
+                        className="flex items-center gap-2"
+                    >
+                        <Upload className="h-4 w-4" />
+                        Bulk Import
                     </Button>
                 </div>
             </div>

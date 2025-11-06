@@ -59,10 +59,11 @@ export async function getPhoneIssuesSummary(): Promise<PhoneIssueSummary[]> {
   try {
     const supabase = await createClient();
     
-    // Get all phone issues first without joins
+    // Get all phone issues first without joins, excluding smoke detector issues
     const { data: issues, error } = await supabase
       .from('phone_issues')
       .select('*')
+      .neq('issue_type', 'smoke_detector') // Filter out smoke detector issues
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -132,21 +133,21 @@ export async function getPhoneIssuesSummary(): Promise<PhoneIssueSummary[]> {
     phoneGroups.forEach((phoneIssues, phoneNumber) => {
       const totalIssues = phoneIssues.length;
       const openIssues = phoneIssues.filter(i => i.status === 'open').length;
-      const inProgressIssues = phoneIssues.filter(i => i.status === 'in_progress').length;
-      const resolvedIssues = phoneIssues.filter(i => i.status === 'resolved').length;
+      const receivedIssues = phoneIssues.filter(i => i.status === 'хүлээж авсан').length;
+      const completedIssues = phoneIssues.filter(i => i.status === 'болсон').length;
+      const needsHelpIssues = phoneIssues.filter(i => i.status === 'тусламж хэрэгтэй').length;
       
-      const smokeDetectorIssues = phoneIssues.filter(i => i.issue_type === 'smoke_detector').length;
+      // Since we're filtering out smoke detectors, these should be 0
+      const smokeDetectorIssues = 0;
       const domophoneIssues = phoneIssues.filter(i => i.issue_type === 'domophone').length;
       const lightBulbIssues = phoneIssues.filter(i => i.issue_type === 'light_bulb').length;
       
-      const smokeDetectorResolved = phoneIssues.filter(
-        i => i.issue_type === 'smoke_detector' && i.status === 'resolved'
-      ).length;
+      const smokeDetectorResolved = 0; // No smoke detectors to resolve
 
       // Count resolved issues by worker
       const workerCounts = new Map<string, number>();
       phoneIssues
-        .filter(i => i.status === 'resolved' && i.worker?.name)
+        .filter(i => i.status === 'болсон' && i.worker?.name)
         .forEach(i => {
           const workerName = i.worker!.name;
           workerCounts.set(workerName, (workerCounts.get(workerName) || 0) + 1);
@@ -161,8 +162,9 @@ export async function getPhoneIssuesSummary(): Promise<PhoneIssueSummary[]> {
         phone_number: phoneNumber,
         total_issues: totalIssues,
         open_issues: openIssues,
-        in_progress_issues: inProgressIssues,
-        resolved_issues: resolvedIssues,
+        received_issues: receivedIssues,
+        completed_issues: completedIssues,
+        needs_help_issues: needsHelpIssues,
         smoke_detector_issues: smokeDetectorIssues,
         domophone_issues: domophoneIssues,
         light_bulb_issues: lightBulbIssues,
@@ -244,7 +246,8 @@ export async function createPhoneIssue(formData: PhoneIssueFormData) {
       status: formData.status,
       worker_id: formData.worker_id || null,
       description: formData.description || null,
-      resolved_at: formData.status === 'resolved' ? new Date().toISOString() : null
+      worker_notes: formData.worker_notes || null,
+      resolved_at: formData.status === 'болсон' ? new Date().toISOString() : null
     }]);
 
   if (error) {
@@ -268,7 +271,8 @@ export async function createPhoneIssueWithoutRedirect(formData: PhoneIssueFormDa
       status: formData.status,
       worker_id: formData.worker_id || null,
       description: formData.description || null,
-      resolved_at: formData.status === 'resolved' ? new Date().toISOString() : null
+      worker_notes: formData.worker_notes || null,
+      resolved_at: formData.status === 'болсон' ? new Date().toISOString() : null
     }]);
 
   if (error) {
@@ -289,11 +293,12 @@ export async function updatePhoneIssue(id: string, formData: PhoneIssueFormData)
     status: formData.status,
     worker_id: formData.worker_id || null,
     description: formData.description || null,
+    worker_notes: formData.worker_notes || null,
     updated_at: new Date().toISOString()
   };
 
-  // Set resolved_at when status changes to resolved
-  if (formData.status === 'resolved') {
+  // Set resolved_at when status changes to болсон (completed)
+  if (formData.status === 'болсон') {
     updateData.resolved_at = new Date().toISOString();
   } else {
     updateData.resolved_at = null;
@@ -333,7 +338,19 @@ export async function deletePhoneIssue(id: string) {
 export async function getApartmentsForSelect() {
   const supabase = await createClient();
   
-  const { data, error } = await supabase
+  // First, let's get all buildings to ensure we have complete data
+  const { data: buildings, error: buildingsError } = await supabase
+    .from('buildings')
+    .select('*')
+    .order('name');
+
+  if (buildingsError) {
+    console.error('Error fetching buildings:', buildingsError);
+    throw new Error('Failed to fetch buildings');
+  }
+
+  // Then get all apartments with their building data
+  const { data: apartments, error: apartmentsError } = await supabase
     .from('apartments')
     .select(`
       id,
@@ -342,14 +359,27 @@ export async function getApartmentsForSelect() {
       building_id,
       building:buildings(*)
     `)
-    .order('unit_number');
+    .order('building_id, floor, unit_number');
 
-  if (error) {
-    console.error('Error fetching apartments for select:', error);
+  if (apartmentsError) {
+    console.error('Error fetching apartments for select:', apartmentsError);
     throw new Error('Failed to fetch apartments');
   }
 
-  return data || [];
+  // Log for debugging
+  console.log('Buildings found:', buildings?.length || 0);
+  console.log('Apartments found:', apartments?.length || 0);
+  
+  // Create a map of buildings for easy lookup
+  const buildingMap = new Map(buildings?.map(b => [b.id, b]) || []);
+  
+  // Ensure each apartment has proper building data
+  const enrichedApartments = apartments?.map(apartment => ({
+    ...apartment,
+    building: apartment.building || buildingMap.get(apartment.building_id)
+  })) || [];
+
+  return enrichedApartments;
 }
 
 export async function getWorkersForSelect() {
@@ -365,6 +395,23 @@ export async function getWorkersForSelect() {
     throw new Error('Failed to fetch workers');
   }
 
+  return data || [];
+}
+
+export async function getBuildingsForSelect() {
+  const supabase = await createClient();
+  
+  const { data, error } = await supabase
+    .from('buildings')
+    .select('id, name, address')
+    .order('name');
+
+  if (error) {
+    console.error('Error fetching buildings for select:', error);
+    throw new Error('Failed to fetch buildings');
+  }
+
+  console.log('Buildings for select:', data?.length || 0);
   return data || [];
 }
 

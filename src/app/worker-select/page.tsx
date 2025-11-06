@@ -3,50 +3,40 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserCircle } from "lucide-react";
-import { RealtimeProvider, useRealtime } from "@/contexts/RealtimeContext";
+import { createClient } from '../../../supabase/client';
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
-function WorkerSelectionContent() {
-  const { workers, setCurrentWorker, currentWorker, isLoading } = useRealtime();
+export default function WorkerSelectionPage() {
+  const [workers, setWorkers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // Debug logging
   useEffect(() => {
-    console.log('WorkerSelectionContent - isLoading:', isLoading);
-    console.log('WorkerSelectionContent - workers:', workers);
-    console.log('WorkerSelectionContent - currentWorker:', currentWorker);
-  }, [isLoading, workers, currentWorker]);
-
-  useEffect(() => {
-    // If worker is already selected, redirect to dashboard
-    if (currentWorker) {
-      console.log('Redirecting to dashboard with worker:', currentWorker);
-      router.push('/dashboard');
+    async function loadWorkers() {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase.from('workers').select('*').order('name');
+        setWorkers(data || []);
+      } catch (error) {
+        console.error('Error loading workers:', error);
+      } finally {
+        setLoading(false);
+      }
     }
-  }, [currentWorker, router]);
+
+    loadWorkers();
+  }, []);
 
   const handleWorkerSelect = async (worker: any) => {
     console.log('Worker selected:', worker);
-
-    try {
-      // Set the current worker
-      setCurrentWorker(worker);
-      console.log('Worker set in context');
-
-      // Wait a moment for state to update
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Force navigation
-      console.log('Attempting navigation to dashboard...');
-      router.push('/dashboard');
-      console.log('Navigation initiated');
-    } catch (error) {
-      console.error('Error during worker selection:', error);
-    }
+    // Save worker to localStorage for the session
+    localStorage.setItem('selectedWorker', JSON.stringify(worker));
+    // Navigate to main dashboard
+    router.push('/dashboard');
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-4 flex items-center justify-center">
         <div className="text-center">
@@ -80,38 +70,10 @@ function WorkerSelectionContent() {
                   {worker.name}
                 </Button>
               ))}
-
-              {/* Debug info */}
-              <div className="mt-4 p-2 bg-gray-100 rounded text-xs">
-                <p>Debug: Workers loaded: {workers.length}</p>
-                <p>Current worker: {currentWorker?.name || 'None'}</p>
-                <p>Loading: {isLoading ? 'Yes' : 'No'}</p>
-              </div>
-
-              {/* Manual navigation button for testing */}
-              {currentWorker && (
-                <Button
-                  className="w-full mt-2"
-                  onClick={() => {
-                    console.log('Manual navigation attempt');
-                    router.push('/dashboard');
-                  }}
-                >
-                  Go to Dashboard (Manual)
-                </Button>
-              )}
             </>
           )}
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-export default function WorkerSelectionPage() {
-  return (
-    <RealtimeProvider>
-      <WorkerSelectionContent />
-    </RealtimeProvider>
   );
 }

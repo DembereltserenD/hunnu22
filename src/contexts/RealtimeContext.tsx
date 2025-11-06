@@ -45,6 +45,7 @@ interface RealtimeContextType {
   syncHistory: SyncHistoryEntry[];
   syncStats: { totalSyncs: number; successfulSyncs: number; failedSyncs: number; conflicts: number };
   refreshSyncHistory: () => Promise<void>;
+  refreshData: () => Promise<void>;
 }
 
 const RealtimeContext = createContext<RealtimeContextType | undefined>(undefined);
@@ -142,48 +143,121 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval);
   }, []);
 
+  // Load data from Supabase
+  const loadData = async (showLoading = true) => {
+    try {
+      if (showLoading) setIsLoading(true);
+      console.log('RealtimeContext - Starting to load data...');
+
+      const [workersRes, buildingsRes, apartmentsRes, visitsRes, sessionsRes, phoneIssuesRes] = await Promise.all([
+        supabase.from('workers').select('*'),
+        supabase.from('buildings').select('*'),
+        supabase.from('apartments').select(`
+          id,
+          unit_number,
+          floor,
+          building_id,
+          created_at,
+          updated_at,
+          building:buildings(*)
+        `),
+        supabase.from('visits').select('*').order('visit_date', { ascending: false }),
+        supabase.from('active_sessions').select('*').eq('status', 'active'),
+        supabase.from('phone_issues').select('*').order('created_at', { ascending: false })
+      ]);
+
+      console.log('RealtimeContext - Data loaded:', {
+        workers: workersRes.data?.length || 0,
+        buildings: buildingsRes.data?.length || 0,
+        apartments: apartmentsRes.data?.length || 0,
+        visits: visitsRes.data?.length || 0,
+        sessions: sessionsRes.data?.length || 0,
+        phoneIssues: phoneIssuesRes.data?.length || 0
+      });
+
+      console.log('RealtimeContext - Workers response:', workersRes);
+
+      if (workersRes.data) setWorkers(workersRes.data);
+      if (buildingsRes.data) setBuildings(buildingsRes.data);
+      if (apartmentsRes.data) setApartments(apartmentsRes.data);
+      if (visitsRes.data) setVisits(visitsRes.data);
+      if (sessionsRes.data) setActiveSessions(sessionsRes.data);
+      if (phoneIssuesRes.data) setPhoneIssues(phoneIssuesRes.data);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      if (showLoading) setIsLoading(false);
+      console.log('RealtimeContext - Loading complete');
+    }
+  };
+
+  // Refresh data function for external use
+  const refreshData = async () => {
+    await loadData(false); // Don't show loading spinner for refresh
+  };
+
   // Load initial data from Supabase
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setIsLoading(true);
-        console.log('RealtimeContext - Starting to load data...');
-
-        const [workersRes, buildingsRes, apartmentsRes, visitsRes, sessionsRes, phoneIssuesRes] = await Promise.all([
-          supabase.from('workers').select('*'),
-          supabase.from('buildings').select('*'),
-          supabase.from('apartments').select('*'),
-          supabase.from('visits').select('*').order('visit_date', { ascending: false }),
-          supabase.from('active_sessions').select('*').eq('status', 'active'),
-          supabase.from('phone_issues').select('*').order('created_at', { ascending: false })
-        ]);
-
-        console.log('RealtimeContext - Data loaded:', {
-          workers: workersRes.data?.length || 0,
-          buildings: buildingsRes.data?.length || 0,
-          apartments: apartmentsRes.data?.length || 0,
-          visits: visitsRes.data?.length || 0,
-          sessions: sessionsRes.data?.length || 0,
-          phoneIssues: phoneIssuesRes.data?.length || 0
-        });
-
-        console.log('RealtimeContext - Workers response:', workersRes);
-
-        if (workersRes.data) setWorkers(workersRes.data);
-        if (buildingsRes.data) setBuildings(buildingsRes.data);
-        if (apartmentsRes.data) setApartments(apartmentsRes.data);
-        if (visitsRes.data) setVisits(visitsRes.data);
-        if (sessionsRes.data) setActiveSessions(sessionsRes.data);
-        if (phoneIssuesRes.data) setPhoneIssues(phoneIssuesRes.data);
-      } catch (error) {
-        console.error('Error loading data:', error);
-      } finally {
-        setIsLoading(false);
-        console.log('RealtimeContext - Loading complete');
-      }
-    };
-
     loadData();
+  }, []);
+
+  // Set up realtime subscriptions for buildings and apartments
+  useEffect(() => {
+    const buildingsChannel = supabase
+      .channel('buildings-changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'buildings' },
+        (payload) => {
+          console.log('Buildings change detected:', payload);
+          // Refresh buildings data
+          supabase.from('buildings').select('*').then(({ data }) => {
+            if (data) setBuildings(data);
+          });
+        }
+      )
+      .subscribe();
+
+    const apartmentsChannel = supabase
+      .channel('apartments-changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'apartments' },
+        (payload) => {
+          console.log('Apartments change detected:', payload);
+          // Refresh apartments data with building relationships
+          supabase.from('apartments').select(`
+            id,
+            unit_number,
+            floor,
+            building_id,
+            created_at,
+            updated_at,
+            building:buildings(*)
+          `).then(({ data }) => {
+            if (data) setApartments(data);
+          });
+        }
+      )
+      .subscribe();
+
+    const phoneIssuesChannel = supabase
+      .channel('phone-issues-changes')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'phone_issues' },
+        (payload) => {
+          console.log('Phone issues change detected:', payload);
+          // Refresh phone issues data
+          supabase.from('phone_issues').select('*').order('created_at', { ascending: false }).then(({ data }) => {
+            if (data) setPhoneIssues(data);
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      buildingsChannel.unsubscribe();
+      apartmentsChannel.unsubscribe();
+      phoneIssuesChannel.unsubscribe();
+    };
   }, []);
 
   // Load sync history
@@ -492,7 +566,8 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     syncPendingData,
     syncHistory,
     syncStats,
-    refreshSyncHistory
+    refreshSyncHistory,
+    refreshData
   };
 
   return (

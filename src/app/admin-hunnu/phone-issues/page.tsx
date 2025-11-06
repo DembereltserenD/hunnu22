@@ -38,23 +38,18 @@ async function PhoneIssuesList() {
             <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12">
                     <Phone className="h-12 w-12 text-gray-400 mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No phone issues found</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No phone calls found</h3>
                     <p className="text-gray-500 text-center mb-4">
-                        Get started by creating your first phone issue record.
+                        Get started by creating your first phone call record.
                     </p>
                     <div className="flex gap-2">
                         <Button asChild>
                             <Link href="/admin-hunnu/phone-issues/new">
                                 <Plus className="h-4 w-4 mr-2" />
-                                Add Phone Issue
+                                Add Phone Call
                             </Link>
                         </Button>
-                        <Button asChild variant="outline">
-                            <Link href="/admin-hunnu/phone-issues/bulk">
-                                <Phone className="h-4 w-4 mr-2" />
-                                Bulk Import
-                            </Link>
-                        </Button>
+
                     </div>
                 </CardContent>
             </Card>
@@ -74,22 +69,28 @@ async function PhoneIssuesList() {
         }
     };
 
-    const getStatusBadge = (openIssues: number, inProgressIssues: number, resolvedIssues: number) => {
+    const getStatusBadge = (openIssues: number, receivedIssues: number, completedIssues: number, needsHelpIssues: number) => {
         if (openIssues > 0) {
             return <Badge variant="destructive" className="flex items-center gap-1">
                 <AlertTriangle className="h-3 w-3" />
-                {openIssues} Open
+                {openIssues} Нээлттэй
             </Badge>;
         }
-        if (inProgressIssues > 0) {
-            return <Badge variant="secondary" className="flex items-center gap-1">
+        if (needsHelpIssues > 0) {
+            return <Badge variant="destructive" className="flex items-center gap-1 bg-orange-100 text-orange-800">
+                <AlertTriangle className="h-3 w-3" />
+                {needsHelpIssues} Тусламж хэрэгтэй
+            </Badge>;
+        }
+        if (receivedIssues > 0) {
+            return <Badge variant="secondary" className="flex items-center gap-1 bg-blue-100 text-blue-800">
                 <Clock className="h-3 w-3" />
-                {inProgressIssues} In Progress
+                {receivedIssues} Хүлээж авсан
             </Badge>;
         }
         return <Badge variant="default" className="flex items-center gap-1 bg-green-100 text-green-800">
             <CheckCircle className="h-3 w-3" />
-            All Resolved
+            Бүгд болсон
         </Badge>;
     };
 
@@ -103,7 +104,7 @@ async function PhoneIssuesList() {
                                 <Phone className="h-5 w-5 text-blue-600" />
                                 <CardTitle className="text-lg">{summary.phone_number}</CardTitle>
                             </div>
-                            {getStatusBadge(summary.open_issues, summary.in_progress_issues, summary.resolved_issues)}
+                            {getStatusBadge(summary.open_issues, summary.received_issues, summary.completed_issues, summary.needs_help_issues)}
                         </div>
                         <CardDescription>
                             {summary.total_issues} total issue{summary.total_issues !== 1 ? 's' : ''} •
@@ -119,18 +120,24 @@ async function PhoneIssuesList() {
                                     {summary.open_issues > 0 && (
                                         <div className="flex items-center gap-2 text-red-600">
                                             <AlertTriangle className="h-3 w-3" />
-                                            {summary.open_issues} Open
+                                            {summary.open_issues} Нээлттэй
                                         </div>
                                     )}
-                                    {summary.in_progress_issues > 0 && (
-                                        <div className="flex items-center gap-2 text-yellow-600">
+                                    {summary.needs_help_issues > 0 && (
+                                        <div className="flex items-center gap-2 text-orange-600">
+                                            <AlertTriangle className="h-3 w-3" />
+                                            {summary.needs_help_issues} Тусламж хэрэгтэй
+                                        </div>
+                                    )}
+                                    {summary.received_issues > 0 && (
+                                        <div className="flex items-center gap-2 text-blue-600">
                                             <Clock className="h-3 w-3" />
-                                            {summary.in_progress_issues} In Progress
+                                            {summary.received_issues} Хүлээж авсан
                                         </div>
                                     )}
                                     <div className="flex items-center gap-2 text-green-600">
                                         <CheckCircle className="h-3 w-3" />
-                                        {summary.resolved_issues} Resolved
+                                        {summary.completed_issues} Болсон
                                     </div>
                                 </div>
                             </div>
@@ -139,15 +146,6 @@ async function PhoneIssuesList() {
                             <div className="space-y-2">
                                 <h4 className="font-medium text-sm text-gray-700">Issue Types</h4>
                                 <div className="space-y-1 text-sm">
-                                    {summary.smoke_detector_issues > 0 && (
-                                        <div className="flex items-center gap-2">
-                                            <Flame className="h-3 w-3 text-red-500" />
-                                            {summary.smoke_detector_issues} Smoke Detector
-                                            {summary.smoke_detector_resolved > 0 && (
-                                                <span className="text-green-600">({summary.smoke_detector_resolved} resolved)</span>
-                                            )}
-                                        </div>
-                                    )}
                                     {summary.domophone_issues > 0 && (
                                         <div className="flex items-center gap-2">
                                             <PhoneCall className="h-3 w-3 text-blue-500" />
@@ -159,6 +157,9 @@ async function PhoneIssuesList() {
                                             <Lightbulb className="h-3 w-3 text-yellow-500" />
                                             {summary.light_bulb_issues} Light Bulb
                                         </div>
+                                    )}
+                                    {summary.domophone_issues === 0 && summary.light_bulb_issues === 0 && (
+                                        <div className="text-gray-500 text-sm">No call records</div>
                                     )}
                                 </div>
                             </div>
@@ -220,24 +221,19 @@ export default function PhoneIssuesPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Phone Issues</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Phone Calls</h1>
                     <p className="text-muted-foreground">
-                        Track and manage phone number issues including smoke detectors, domophones, and light bulbs
+                        Track and manage phone calls for domophone and light bulb issues
                     </p>
                 </div>
                 <div className="flex gap-2">
                     <Button asChild>
                         <Link href="/admin-hunnu/phone-issues/new">
                             <Plus className="h-4 w-4 mr-2" />
-                            Add Phone Issue
+                            Add Phone Call
                         </Link>
                     </Button>
-                    <Button asChild variant="outline">
-                        <Link href="/admin-hunnu/phone-issues/bulk">
-                            <Phone className="h-4 w-4 mr-2" />
-                            Bulk Import
-                        </Link>
-                    </Button>
+
                 </div>
             </div>
 

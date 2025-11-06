@@ -214,7 +214,12 @@ function BuildingsPageContent() {
 
     const groupApartmentsByFloor = (apartments: any[] = []) => {
         const grouped = apartments.reduce((acc, apartment) => {
+            if (!apartment) return acc;
+
             const floor = apartment.floor;
+            // Add safety check for floor number
+            if (typeof floor !== 'number' || isNaN(floor)) return acc;
+
             if (!acc[floor]) {
                 acc[floor] = [];
             }
@@ -227,7 +232,7 @@ function BuildingsPageContent() {
             .sort((a: number, b: number) => a - b)
             .map(floor => ({
                 floor,
-                apartments: grouped[floor].sort((a: any, b: any) => a.unit_number.localeCompare(b.unit_number))
+                apartments: (grouped[floor] || []).sort((a: any, b: any) => (a.unit_number || '').localeCompare(b.unit_number || ''))
             }));
     };
 

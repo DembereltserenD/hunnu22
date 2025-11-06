@@ -1,4 +1,20 @@
 /**
+ * Clean unit number by removing extra text like "SD", "1SD", etc.
+ * Examples:
+ * - "101-1 SD" -> "101"
+ * - "205-2SD" -> "205"
+ * - "1005" -> "1005"
+ */
+export function cleanUnitNumber(unitNumber: string): string {
+  // Remove common suffixes and extra text
+  return unitNumber
+    .replace(/[-\s]*\d*\s*SD.*$/i, '') // Remove "-1 SD", "1SD", etc.
+    .replace(/[-\s]*\d*\s*smoke.*$/i, '') // Remove smoke detector references
+    .replace(/[-\s]*\d*\s*detector.*$/i, '') // Remove detector references
+    .trim();
+}
+
+/**
  * Calculate floor number from unit number
  * Examples:
  * - 101 -> Floor 1
@@ -7,8 +23,11 @@
  * - 1501 -> Floor 15
  */
 export function calculateFloor(unitNumber: string): number {
-  // Remove any non-digit characters and convert to number
-  const numericUnit = parseInt(unitNumber.replace(/\D/g, ''), 10);
+  // Clean the unit number first
+  const cleanUnit = cleanUnitNumber(unitNumber);
+  
+  // Extract only the numeric part
+  const numericUnit = parseInt(cleanUnit.replace(/\D/g, ''), 10);
   
   if (isNaN(numericUnit)) {
     return 1; // Default to floor 1 if parsing fails

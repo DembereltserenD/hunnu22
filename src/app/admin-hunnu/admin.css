@@ -1,7 +1,60 @@
-/* Admin pages specific styles */
+/* Admin pages specific styles - Force light theme with proper contrast */
 .admin-pages {
   min-height: 100vh;
-  background-color: #f8fafc;
+  background-color: #f9fafb !important;
+  color: #111827 !important;
+  color-scheme: light !important;
+}
+
+/* Force light theme for all admin page elements */
+.admin-pages *,
+.admin-pages *:before,
+.admin-pages *:after {
+  color-scheme: light !important;
+}
+
+/* Override body styles for admin pages */
+.admin-pages body,
+html:has(.admin-pages) body {
+  background-color: #f9fafb !important;
+  color: #111827 !important;
+}
+
+/* Force light theme CSS variables for admin pages with proper contrast */
+.admin-pages,
+.admin-pages.dark,
+.admin-pages .dark,
+html:has(.admin-pages),
+html:has(.admin-pages).dark,
+html:has(.admin-pages) .dark {
+  /* Light backgrounds */
+  --background: 249 250 251 !important; /* #f9fafb - light gray */
+  --card: 255 255 255 !important; /* #ffffff - white */
+  --popover: 255 255 255 !important; /* #ffffff - white */
+  --secondary: 243 244 246 !important; /* #f3f4f6 - light gray */
+  --muted: 243 244 246 !important; /* #f3f4f6 - light gray */
+  --accent: 243 244 246 !important; /* #f3f4f6 - light gray */
+  
+  /* Dark text for contrast on light backgrounds */
+  --foreground: 17 24 39 !important; /* #111827 - dark gray */
+  --card-foreground: 17 24 39 !important; /* #111827 - dark gray */
+  --popover-foreground: 17 24 39 !important; /* #111827 - dark gray */
+  --secondary-foreground: 17 24 39 !important; /* #111827 - dark gray */
+  --accent-foreground: 17 24 39 !important; /* #111827 - dark gray */
+  --muted-foreground: 75 85 99 !important; /* #4b5563 - medium gray */
+  
+  /* Primary colors with proper contrast */
+  --primary: 37 99 235 !important; /* #2563eb - blue */
+  --primary-foreground: 255 255 255 !important; /* #ffffff - white (only on blue background) */
+  
+  /* Destructive colors with proper contrast */
+  --destructive: 220 38 38 !important; /* #dc2626 - red */
+  --destructive-foreground: 255 255 255 !important; /* #ffffff - white (only on red background) */
+  
+  /* Borders and inputs */
+  --border: 209 213 219 !important; /* #d1d5db - gray border */
+  --input: 209 213 219 !important; /* #d1d5db - gray border */
+  --ring: 37 99 235 !important; /* #2563eb - blue focus ring */
 }
 
 /* Ensure admin pages are always considered online */
@@ -17,4 +70,529 @@
 .admin-pages [data-offline="true"] {
   opacity: 1 !important;
   pointer-events: auto !important;
+}
+
+/* Comprehensive text visibility fixes */
+.admin-pages h1,
+.admin-pages h2,
+.admin-pages h3,
+.admin-pages h4,
+.admin-pages h5,
+.admin-pages h6 {
+  color: #111827 !important; /* Dark text for headings */
+}
+
+.admin-pages p,
+.admin-pages span,
+.admin-pages div,
+.admin-pages label {
+  color: #374151 !important; /* Dark gray for body text */
+}
+
+.admin-pages .text-muted-foreground {
+  color: #6b7280 !important; /* Medium gray for muted text */
+}
+
+/* Button text visibility */
+.admin-pages button {
+  color: #374151 !important; /* Dark text for buttons */
+}
+
+.admin-pages button.bg-primary,
+.admin-pages .bg-primary {
+  color: #ffffff !important; /* White text on primary (blue) background */
+}
+
+.admin-pages button.bg-destructive,
+.admin-pages .bg-destructive {
+  color: #ffffff !important; /* White text on destructive (red) background */
+}
+
+/* Input and form element text */
+.admin-pages input,
+.admin-pages textarea,
+.admin-pages select {
+  color: #111827 !important; /* Dark text in form fields */
+  background-color: #ffffff !important; /* White background for inputs */
+}
+
+.admin-pages input::placeholder,
+.admin-pages textarea::placeholder {
+  color: #9ca3af !important; /* Gray placeholder text */
+}
+
+/* Table text visibility */
+.admin-pages table,
+.admin-pages th,
+.admin-pages td {
+  color: #374151 !important; /* Dark text in tables */
+}
+
+.admin-pages th {
+  color: #111827 !important; /* Darker text for table headers */
+  font-weight: 600 !important;
+}
+
+/* Card text visibility */
+.admin-pages .bg-card {
+  background-color: #ffffff !important;
+  color: #374151 !important;
+}
+
+.admin-pages .text-card-foreground {
+  color: #111827 !important;
+}
+
+/* Link text visibility */
+.admin-pages a {
+  color: #2563eb !important; /* Blue for links */
+}
+
+.admin-pages a:hover {
+  color: #1d4ed8 !important; /* Darker blue on hover */
+}
+
+/* Badge and status text */
+.admin-pages .badge,
+.admin-pages [class*="badge"] {
+  color: #374151 !important;
+}
+
+/* Navigation text (already handled in component but adding backup) */
+.admin-pages nav a {
+  color: #4b5563 !important;
+}
+
+.admin-pages nav a:hover {
+  color: #111827 !important;
+}
+
+.admin-pages nav a.active,
+.admin-pages nav a[aria-current="page"] {
+  color: #ffffff !important; /* White text on active nav items */
+  background-color: #2563eb !important; /* Blue background for active items */
+}
+
+/* Specific overrides for shadcn/ui components */
+.admin-pages .text-foreground {
+  color: #111827 !important;
+}
+
+.admin-pages .bg-background {
+  background-color: #f9fafb !important;
+}
+
+.admin-pages .text-primary {
+  color: #2563eb !important;
+}
+
+.admin-pages .text-secondary {
+  color: #6b7280 !important;
+}
+
+/* Ensure proper contrast for all text elements */
+.admin-pages * {
+  /* Prevent any white text on light backgrounds */
+}
+
+.admin-pages *:not(.bg-primary):not(.bg-destructive):not(.bg-blue-600):not(.bg-red-600) {
+  color: #374151 !important;
+}
+
+/* Override any potential white text issues */
+.admin-pages .text-white:not(.bg-primary):not(.bg-destructive):not(.bg-blue-600):not(.bg-red-600) {
+  color: #111827 !important;
+}
+/* 
+Additional UI component fixes for text visibility */
+
+/* Shadcn/UI Table components */
+.admin-pages .table th {
+  color: #111827 !important;
+  font-weight: 600 !important;
+  background-color: #f9fafb !important;
+}
+
+.admin-pages .table td {
+  color: #374151 !important;
+  background-color: #ffffff !important;
+}
+
+/* Shadcn/UI Button components */
+.admin-pages button[data-variant="default"],
+.admin-pages .btn-default,
+.admin-pages button:not([data-variant]):not(.btn-outline):not(.btn-ghost) {
+  background-color: #111827 !important;
+  color: #ffffff !important;
+}
+
+.admin-pages button[data-variant="outline"],
+.admin-pages .btn-outline {
+  background-color: #ffffff !important;
+  color: #374151 !important;
+  border-color: #d1d5db !important;
+}
+
+.admin-pages button[data-variant="ghost"],
+.admin-pages .btn-ghost {
+  background-color: transparent !important;
+  color: #374151 !important;
+}
+
+.admin-pages button[data-variant="ghost"]:hover,
+.admin-pages .btn-ghost:hover {
+  background-color: #f3f4f6 !important;
+  color: #111827 !important;
+}
+
+/* Fix for view mode buttons and similar toggle buttons */
+.admin-pages button.bg-primary,
+.admin-pages .bg-primary,
+.admin-pages button[class*="bg-primary"] {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+/* Ensure all buttons have proper text contrast */
+.admin-pages button {
+  color: #374151 !important;
+}
+
+.admin-pages button.bg-primary,
+.admin-pages button.bg-destructive,
+.admin-pages button.bg-blue-600,
+.admin-pages button.bg-red-600,
+.admin-pages button[data-variant="default"],
+.admin-pages .bg-primary,
+.admin-pages .bg-destructive {
+  color: #ffffff !important;
+}
+
+/* Shadcn/UI Input components */
+.admin-pages input[type="text"],
+.admin-pages input[type="email"],
+.admin-pages input[type="password"],
+.admin-pages input[type="number"],
+.admin-pages textarea,
+.admin-pages select {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  border-color: #d1d5db !important;
+}
+
+.admin-pages input:focus,
+.admin-pages textarea:focus,
+.admin-pages select:focus {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1) !important;
+}
+
+/* Shadcn/UI Card components */
+.admin-pages .card {
+  background-color: #ffffff !important;
+  color: #374151 !important;
+  border-color: #e5e7eb !important;
+}
+
+.admin-pages .card-header {
+  color: #111827 !important;
+}
+
+.admin-pages .card-title {
+  color: #111827 !important;
+  font-weight: 600 !important;
+}
+
+.admin-pages .card-description {
+  color: #6b7280 !important;
+}
+
+.admin-pages .card-content {
+  color: #374151 !important;
+}
+
+/* Shadcn/UI Badge components */
+.admin-pages .badge {
+  background-color: #f3f4f6 !important;
+  color: #374151 !important;
+  border-color: #d1d5db !important;
+}
+
+.admin-pages .badge[data-variant="default"] {
+  background-color: #111827 !important;
+  color: #ffffff !important;
+}
+
+.admin-pages .badge[data-variant="destructive"] {
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+.admin-pages .badge[data-variant="outline"] {
+  background-color: transparent !important;
+  color: #374151 !important;
+  border-color: #d1d5db !important;
+}
+
+.admin-pages .badge[data-variant="secondary"] {
+  background-color: #f3f4f6 !important;
+  color: #374151 !important;
+}
+
+/* Pagination components */
+.admin-pages .pagination a {
+  color: #374151 !important;
+  background-color: #ffffff !important;
+  border-color: #d1d5db !important;
+}
+
+.admin-pages .pagination a:hover {
+  background-color: #f3f4f6 !important;
+  color: #111827 !important;
+}
+
+.admin-pages .pagination a[aria-current="page"] {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+}
+
+/* Loading spinner */
+.admin-pages .loading-spinner {
+  color: #2563eb !important;
+}
+
+/* Alert/Toast components */
+.admin-pages .alert {
+  background-color: #ffffff !important;
+  color: #374151 !important;
+  border-color: #d1d5db !important;
+}
+
+.admin-pages .alert-destructive {
+  background-color: #fef2f2 !important;
+  color: #991b1b !important;
+  border-color: #fecaca !important;
+}
+
+.admin-pages .alert-success {
+  background-color: #f0fdf4 !important;
+  color: #166534 !important;
+  border-color: #bbf7d0 !important;
+}
+
+/* Dropdown/Select components */
+.admin-pages .select-trigger {
+  background-color: #ffffff !important;
+  color: #374151 !important;
+  border-color: #d1d5db !important;
+}
+
+.admin-pages .select-content {
+  background-color: #ffffff !important;
+  color: #374151 !important;
+  border-color: #d1d5db !important;
+}
+
+.admin-pages .select-item {
+  color: #374151 !important;
+}
+
+.admin-pages .select-item:hover {
+  background-color: #f3f4f6 !important;
+  color: #111827 !important;
+}
+
+/* Dialog/Modal components */
+.admin-pages .dialog-content {
+  background-color: #ffffff !important;
+  color: #374151 !important;
+}
+
+.admin-pages .dialog-header {
+  color: #111827 !important;
+}
+
+.admin-pages .dialog-title {
+  color: #111827 !important;
+  font-weight: 600 !important;
+}
+
+.admin-pages .dialog-description {
+  color: #6b7280 !important;
+}
+
+/* Form labels */
+.admin-pages label {
+  color: #111827 !important;
+  font-weight: 500 !important;
+}
+
+/* Error messages */
+.admin-pages .error-message,
+.admin-pages .text-destructive {
+  color: #dc2626 !important;
+}
+
+/* Success messages */
+.admin-pages .success-message,
+.admin-pages .text-success {
+  color: #059669 !important;
+}
+
+/* Ensure icons have proper color */
+.admin-pages svg {
+  color: inherit !important;
+}
+
+/* Override any remaining white text issues */
+.admin-pages .text-white:not(.bg-primary):not(.bg-destructive):not(.bg-blue-600):not(.bg-red-600):not(.bg-green-600):not(.bg-yellow-600):not(.bg-purple-600):not(.bg-indigo-600) {
+  color: #374151 !important;
+}/
+* Navigation specific fixes */
+.admin-pages nav a {
+  color: #374151 !important;
+  text-decoration: none !important;
+}
+
+.admin-pages nav a:hover {
+  color: #111827 !important;
+  background-color: #f3f4f6 !important;
+}
+
+.admin-pages nav a.bg-blue-600,
+.admin-pages nav a[style*="background-color: rgb(37, 99, 235)"] {
+  color: #ffffff !important;
+  background-color: #2563eb !important;
+}
+
+/* Sidebar header text */
+.admin-pages .sidebar-header h2 {
+  color: #111827 !important;
+  font-weight: 600 !important;
+}
+
+/* Mobile menu button */
+.admin-pages .mobile-menu-button {
+  color: #374151 !important;
+  background-color: #ffffff !important;
+  border-color: #d1d5db !important;
+}
+
+.admin-pages .mobile-menu-button:hover {
+  background-color: #f3f4f6 !important;
+  color: #111827 !important;
+}
+
+/* Ensure all text in admin pages has minimum contrast */
+.admin-pages * {
+  /* Prevent invisible text */
+  text-shadow: none !important;
+}
+
+/* Force visibility for any potentially hidden text */
+.admin-pages .invisible-text,
+.admin-pages .hidden-text {
+  color: #374151 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}/* 
+Prevent navigation duplication issues */
+.admin-pages nav {
+  position: relative;
+}
+
+.admin-pages nav::before,
+.admin-pages nav::after {
+  display: none !important;
+  content: none !important;
+}
+
+.admin-pages nav a {
+  position: relative;
+  display: flex !important;
+}
+
+.admin-pages nav a::before,
+.admin-pages nav a::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* Ensure no duplicate rendering */
+.admin-pages .sidebar-nav {
+  overflow: hidden;
+}
+
+/* Fix any potential z-index issues */
+.admin-pages nav a {
+  z-index: 1;
+}
+
+/* Prevent text duplication */
+.admin-pages nav a span {
+  display: inline !important;
+}
+
+/* Remove any potential duplicate content */
+.admin-pages nav *::before,
+.admin-pages nav *::after {
+  content: none !important;
+  display: none !important;
+}/* Enh
+anced navigation duplication prevention */
+.admin-pages .sidebar-nav {
+  contain: layout style paint;
+  isolation: isolate;
+}
+
+.admin-pages .sidebar-nav a {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: auto;
+}
+
+/* Ensure single rendering pass */
+.admin-pages nav {
+  transform-style: flat;
+}
+
+/* Force layout recalculation to prevent visual artifacts */
+.admin-pages .sidebar-nav > * {
+  position: relative;
+  z-index: 1;
+  clear: both;
+}
+
+/* Fix for view mode toggle buttons (Table/Grouped) */
+.admin-pages button[class*="variant-default"],
+.admin-pages button:has(+ button[class*="variant-outline"]) {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+}
+
+.admin-pages button[class*="variant-outline"] {
+  background-color: #ffffff !important;
+  color: #374151 !important;
+  border-color: #d1d5db !important;
+}
+
+/* Specific fix for apartments page view mode buttons */
+.admin-pages .flex.items-center.gap-2 button {
+  color: #374151 !important;
+  background-color: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+}
+
+.admin-pages .flex.items-center.gap-2 button[class*="default"] {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+}
+
+/* Ensure GroupedAdd and similar buttons have proper contrast */
+.admin-pages button:not([class*="outline"]):not([class*="ghost"]) {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
 }

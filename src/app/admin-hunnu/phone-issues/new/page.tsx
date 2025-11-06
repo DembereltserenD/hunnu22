@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 import { PhoneIssueForm } from '@/components/admin/phone-issue-form';
-import { getApartmentsForSelect, getWorkersForSelect } from '../actions';
+import { getApartmentsForSelect, getWorkersForSelect, getBuildingsForSelect } from '../actions';
 
 function LoadingSkeleton() {
     return (
@@ -28,9 +28,10 @@ function LoadingSkeleton() {
 }
 
 async function NewPhoneIssueForm() {
-    const [apartments, workers] = await Promise.all([
+    const [apartments, workers, buildings] = await Promise.all([
         getApartmentsForSelect(),
-        getWorkersForSelect()
+        getWorkersForSelect(),
+        getBuildingsForSelect()
     ]);
 
     return (
@@ -42,7 +43,7 @@ async function NewPhoneIssueForm() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <PhoneIssueForm apartments={apartments} workers={workers} />
+                <PhoneIssueForm apartments={apartments} workers={workers} buildings={buildings} />
             </CardContent>
         </Card>
     );

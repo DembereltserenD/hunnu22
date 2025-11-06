@@ -77,10 +77,11 @@ export interface PhoneIssue {
   id: string;
   apartment_id: string;
   phone_number: string;
-  issue_type: 'smoke_detector' | 'domophone' | 'light_bulb';
-  status: 'open' | 'in_progress' | 'resolved';
+  issue_type: 'domophone' | 'light_bulb';
+  status: 'open' | 'хүлээж авсан' | 'болсон' | 'тусламж хэрэгтэй';
   worker_id?: string | null;
   description?: string | null;
+  worker_notes?: string | null; // For additional details when status is "тусламж хэрэгтэй"
   resolved_at?: string | null;
   created_at: string;
   updated_at: string;
@@ -91,10 +92,11 @@ export interface PhoneIssue {
 export interface PhoneIssueFormData {
   apartment_id: string;
   phone_number: string;
-  issue_type: 'smoke_detector' | 'domophone' | 'light_bulb';
-  status: 'open' | 'in_progress' | 'resolved';
+  issue_type: 'domophone' | 'light_bulb';
+  status: 'open' | 'хүлээж авсан' | 'болсон' | 'тусламж хэрэгтэй' | 'цэвэрлэх хэрэгтэй';
   worker_id?: string;
   description?: string;
+  worker_notes?: string;
 }
 
 // Phone Issues Summary interface for dashboard view
@@ -102,8 +104,9 @@ export interface PhoneIssueSummary {
   phone_number: string;
   total_issues: number;
   open_issues: number;
-  in_progress_issues: number;
-  resolved_issues: number;
+  received_issues: number;
+  completed_issues: number;
+  needs_help_issues: number;
   smoke_detector_issues: number;
   domophone_issues: number;
   light_bulb_issues: number;

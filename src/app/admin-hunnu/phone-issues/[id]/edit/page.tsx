@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ArrowLeft } from 'lucide-react';
 import { PhoneIssueForm } from '@/components/admin/phone-issue-form';
 import { getPhoneIssue } from '../../actions';
-import { getApartmentsForSelect, getWorkersForSelect } from '../../actions';
+import { getApartmentsForSelect, getWorkersForSelect, getBuildingsForSelect } from '../../actions';
 
 interface EditPhoneIssuePageProps {
     params: {
@@ -37,10 +37,11 @@ function LoadingSkeleton() {
 
 async function EditPhoneIssueForm({ id }: { id: string }) {
     try {
-        const [phoneIssue, apartments, workers] = await Promise.all([
+        const [phoneIssue, apartments, workers, buildings] = await Promise.all([
             getPhoneIssue(id),
             getApartmentsForSelect(),
-            getWorkersForSelect()
+            getWorkersForSelect(),
+            getBuildingsForSelect()
         ]);
 
         return (
@@ -56,6 +57,7 @@ async function EditPhoneIssueForm({ id }: { id: string }) {
                         phoneIssue={phoneIssue}
                         apartments={apartments}
                         workers={workers}
+                        buildings={buildings}
                     />
                 </CardContent>
             </Card>

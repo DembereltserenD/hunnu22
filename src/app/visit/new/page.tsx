@@ -9,15 +9,51 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Save, Wifi, WifiOff, CheckCircle2, AlertCircle } from "lucide-react";
-import { RealtimeProvider, useRealtime } from "@/contexts/RealtimeContext";
+import { createClient } from '../../../../supabase/client';
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import DashboardNavbar from "@/components/dashboard-navbar";
+import { cleanUnitNumber } from "@/lib/floor-utils";
 
 function VisitFormContent() {
-  const { workers, apartments, buildings, currentWorker, logVisit, endSession, isLoading, isOnline, pendingCount } = useRealtime();
+  const [data, setData] = useState<{
+    workers: any[];
+    apartments: any[];
+    buildings: any[];
+  }>({
+    workers: [],
+    apartments: [],
+    buildings: []
+  });
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const supabase = createClient();
+
+        const [workersRes, apartmentsRes, buildingsRes] = await Promise.all([
+          supabase.from('workers').select('*'),
+          supabase.from('apartments').select('*'),
+          supabase.from('buildings').select('*')
+        ]);
+
+        setData({
+          workers: workersRes.data || [],
+          apartments: apartmentsRes.data || [],
+          buildings: buildingsRes.data || []
+        });
+      } catch (error) {
+        console.error('Error loading visit form data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, []);
   const apartmentId = searchParams.get('apartmentId');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -103,7 +139,7 @@ function VisitFormContent() {
               </Button>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Log Visit</h1>
-                <p className="text-sm text-gray-600">Unit {apartment.unit_number} - {building.name}</p>
+                <p className="text-sm text-gray-600">Unit {cleanUnitNumber(apartment.unit_number)} - {building.name}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -266,17 +302,15 @@ function VisitFormContent() {
 
 export default function VisitFormPage() {
   return (
-    <RealtimeProvider>
-      <Suspense fallback={
-        <div className="min-h-screen bg-gray-50 p-4 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading form...</p>
-          </div>
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 p-4 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading form...</p>
         </div>
-      }>
-        <VisitFormContent />
-      </Suspense>
-    </RealtimeProvider>
+      </div>
+    }>
+      <VisitFormContent />
+    </Suspense>
   );
 }

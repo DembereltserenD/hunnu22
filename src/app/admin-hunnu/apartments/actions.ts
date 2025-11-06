@@ -148,12 +148,19 @@ export async function createApartmentWithoutRedirect(apartmentData: { building_i
     }
 
     const result = await ApartmentService.create(validatedData.data);
+    
+    // Revalidate paths to ensure data is fresh across the app
+    revalidatePath('/admin-hunnu/apartments');
+    revalidatePath('/admin-hunnu/buildings');
+    
     return result;
   } catch (error) {
     console.error('Error creating apartment:', error);
     throw error;
   }
 }
+
+
 
 // Update existing apartment
 export async function updateApartment(id: string, formData: FormData) {
