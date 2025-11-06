@@ -75,7 +75,7 @@ export default function DebugDataPage() {
                     <h2 className="text-xl font-semibold mb-3">All Buildings</h2>
                     <div className="bg-gray-100 p-4 rounded">
                         <pre className="text-sm overflow-auto">
-                            {JSON.stringify(data?.buildings?.map(b => ({ id: b.id, name: b.name })), null, 2)}
+                            {JSON.stringify(data?.buildings?.map((b: any) => ({ id: b.id, name: b.name })), null, 2)}
                         </pre>
                     </div>
                 </div>
@@ -84,7 +84,7 @@ export default function DebugDataPage() {
                     <h2 className="text-xl font-semibold mb-3">All Apartments</h2>
                     <div className="bg-gray-100 p-4 rounded">
                         <pre className="text-sm overflow-auto">
-                            {JSON.stringify(data?.apartments?.map(apt => ({
+                            {JSON.stringify(data?.apartments?.map((apt: any) => ({
                                 id: apt.id,
                                 unit: apt.unit_number,
                                 building_id: apt.building_id,

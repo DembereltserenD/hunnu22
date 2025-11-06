@@ -33,8 +33,8 @@ export function calculateSmokeDetectorStats(
     );
   }
 
-  const resolvedIssues = relevantIssues.filter(issue => issue.status === 'resolved');
-  const pendingIssues = relevantIssues.filter(issue => issue.status !== 'resolved');
+  const resolvedIssues = relevantIssues.filter(issue => issue.status === 'болсон');
+  const pendingIssues = relevantIssues.filter(issue => issue.status !== 'болсон');
   
   // Calculate total quantity cleaned by parsing descriptions
   const totalCleaned = resolvedIssues.reduce((total, issue) => {

@@ -77,7 +77,7 @@ export interface PhoneIssue {
   id: string;
   apartment_id: string;
   phone_number: string;
-  issue_type: 'domophone' | 'light_bulb';
+  issue_type: 'smoke_detector' | 'domophone' | 'light_bulb';
   status: 'open' | 'хүлээж авсан' | 'болсон' | 'тусламж хэрэгтэй';
   worker_id?: string | null;
   description?: string | null;
@@ -92,7 +92,7 @@ export interface PhoneIssue {
 export interface PhoneIssueFormData {
   apartment_id: string;
   phone_number: string;
-  issue_type: 'domophone' | 'light_bulb';
+  issue_type: 'smoke_detector' | 'domophone' | 'light_bulb';
   status: 'open' | 'хүлээж авсан' | 'болсон' | 'тусламж хэрэгтэй' | 'цэвэрлэх хэрэгтэй';
   worker_id?: string;
   description?: string;

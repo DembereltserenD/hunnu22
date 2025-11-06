@@ -20,19 +20,19 @@ export default function DashboardNavbar() {
   }, []);
 
   return (
-    <nav className="w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-3 md:py-2 transition-colors sticky top-0 z-50">
+    <nav className="w-full border-b bg-[rgba(245,244,247,1)] dark:bg-background/95 backdrop-blur supports-[backdrop-filter]:dark:bg-background/60 py-3 md:py-2 transition-colors sticky top-0 z-50">
       <div className="container mx-auto px-4 flex justify-between items-center">
         <Link href="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <Image 
-            src="/573289657_1631257461636918_3556630650382290902_n.jpg" 
-            alt="Digital Power Logo" 
-            width={40} 
+          <Image
+            src="/573289657_1631257461636918_3556630650382290902_n.jpg"
+            alt="Digital Power Logo"
+            width={40}
             height={40}
             className="rounded-md"
           />
           <span className="text-lg md:text-xl font-bold text-primary">Digital Power</span>
         </Link>
-        
+
         {/* Desktop Navigation */}
         <div className="hidden md:flex gap-3 items-center">
           {selectedWorker && (
