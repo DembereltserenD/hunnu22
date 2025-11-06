@@ -28,7 +28,7 @@ function ApartmentDetailContent() {
   // Get phone issues for this apartment
   const apartmentPhoneIssues = useMemo(() => {
     if (!apartment) return [];
-    return phoneIssues.filter(issue => issue.apartment_id === apartment.id)
+    return (phoneIssues || []).filter(issue => issue.apartment_id === apartment.id)
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [phoneIssues, apartment]);
 

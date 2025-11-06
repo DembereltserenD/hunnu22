@@ -28,7 +28,7 @@ function BuildingDetailContent() {
   // Calculate building statistics
   const buildingStats = useMemo(() => {
     const totalApartments = buildingApartments.length;
-    const buildingPhoneIssues = phoneIssues.filter(issue =>
+    const buildingPhoneIssues = (phoneIssues || []).filter(issue =>
       buildingApartments.some(apt => apt.id === issue.apartment_id)
     );
 
@@ -70,7 +70,7 @@ function BuildingDetailContent() {
         s.apartment_id === apartment.id && s.status === 'active'
       );
 
-      const apartmentPhoneIssues = phoneIssues.filter(issue => issue.apartment_id === apartment.id);
+      const apartmentPhoneIssues = (phoneIssues || []).filter(issue => issue.apartment_id === apartment.id);
       const openPhoneIssues = apartmentPhoneIssues.filter(issue => issue.status === 'open');
 
       const needsAttention = lastVisit?.status === 'repair-needed' ||
