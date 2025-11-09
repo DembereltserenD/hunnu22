@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
-import { Menu, UserCircle } from "lucide-react";
+import { Menu, UserCircle, MessageSquarePlus, Activity } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import Image from "next/image";
@@ -42,14 +42,26 @@ export default function DashboardNavbar() {
             </div>
           )}
           <ThemeSwitcher />
+          <Link href="/health-stats">
+            <Button variant="outline" size="sm" className="gap-2">
+              <Activity className="h-4 w-4" />
+              Эрүүл мэнд
+            </Button>
+          </Link>
+          <Link href="/worker-requests">
+            <Button variant="outline" size="sm" className="gap-2">
+              <MessageSquarePlus className="h-4 w-4" />
+              Хүсэлт илгээх
+            </Button>
+          </Link>
           <Link href="/worker-dashboard">
             <Button variant="outline" size="sm">
-              Worker Dashboard
+              Ажлын самбар
             </Button>
           </Link>
           <Link href="/worker-select">
             <Button variant="outline" size="sm">
-              Switch Worker
+              Ажилчин солих
             </Button>
           </Link>
         </div>
@@ -61,12 +73,12 @@ export default function DashboardNavbar() {
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
                 <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle menu</span>
+                <span className="sr-only">Цэс нээх</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[280px] sm:w-[350px]">
               <SheetHeader>
-                <SheetTitle>Menu</SheetTitle>
+                <SheetTitle>Цэс</SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-3 mt-8">
                 {selectedWorker && (
@@ -75,14 +87,26 @@ export default function DashboardNavbar() {
                     <span className="text-sm font-medium">{selectedWorker.name}</span>
                   </div>
                 )}
+                <Link href="/health-stats" onClick={() => setOpen(false)}>
+                  <Button variant="outline" className="w-full justify-start text-base h-12 gap-2">
+                    <Activity className="h-5 w-5" />
+                    Эрүүл мэнд
+                  </Button>
+                </Link>
+                <Link href="/worker-requests" onClick={() => setOpen(false)}>
+                  <Button variant="outline" className="w-full justify-start text-base h-12 gap-2">
+                    <MessageSquarePlus className="h-5 w-5" />
+                    Хүсэлт илгээх
+                  </Button>
+                </Link>
                 <Link href="/worker-dashboard" onClick={() => setOpen(false)}>
                   <Button variant="outline" className="w-full justify-start text-base h-12">
-                    Worker Dashboard
+                    Ажлын самбар
                   </Button>
                 </Link>
                 <Link href="/worker-select" onClick={() => setOpen(false)}>
                   <Button variant="outline" className="w-full justify-start text-base h-12">
-                    Switch Worker
+                    Ажилчин солих
                   </Button>
                 </Link>
               </div>

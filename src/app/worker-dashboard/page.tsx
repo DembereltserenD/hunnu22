@@ -12,6 +12,7 @@ import { Phone, CheckCircle2, Clock, AlertCircle, HelpCircle, ArrowLeft } from "
 import Link from "next/link";
 import { createClient } from '../../../supabase/client';
 import { useToast } from "@/components/ui/use-toast";
+import DashboardNavbar from "@/components/dashboard-navbar";
 
 interface MaintenanceRecord {
     id: string;
@@ -36,15 +37,30 @@ export default function WorkerDashboardPage() {
     const [selectedRecord, setSelectedRecord] = useState<MaintenanceRecord | null>(null);
     const [workerNotes, setWorkerNotes] = useState('');
     const [showNotesDialog, setShowNotesDialog] = useState(false);
+    const [mounted, setMounted] = useState(false);
     const { toast } = useToast();
 
     useEffect(() => {
+        setMounted(true);
         loadMaintenanceRecords();
     }, []);
 
     const loadMaintenanceRecords = async () => {
         try {
             const supabase = createClient();
+
+            // Check if Supabase is properly configured
+            if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+                console.error('Supabase configuration missing');
+                toast({
+                    title: 'Тохиргооны алдаа',
+                    description: 'Supabase тохиргоо дутуу байна',
+                    variant: 'destructive'
+                });
+                setRecords([]);
+                setLoading(false);
+                return;
+            }
 
             // Get phone issues with apartment and building data, excluding smoke detector issues
             const { data: issues, error } = await supabase
@@ -66,10 +82,10 @@ export default function WorkerDashboardPage() {
                 .order('created_at', { ascending: false });
 
             if (error) {
-                console.error('Supabase error:', error);
+                console.error('Supabase query error:', error);
                 toast({
-                    title: 'Error',
-                    description: 'Failed to load maintenance records. Please check your connection.',
+                    title: 'Алдаа',
+                    description: 'Мэдээлэл татахад алдаа гарлаа. Дахин оролдоно уу.',
                     variant: 'destructive'
                 });
                 setRecords([]);
@@ -94,15 +110,10 @@ export default function WorkerDashboardPage() {
 
             setRecords(transformedRecords);
         } catch (error: any) {
-            console.error('Error loading maintenance records:', {
-                message: error?.message || 'Unknown error',
-                details: error?.toString() || '',
-                hint: error?.hint || '',
-                code: error?.code || ''
-            });
+            console.error('Error loading maintenance records:', error);
             toast({
-                title: 'Error',
-                description: 'Failed to load maintenance records. Please refresh the page.',
+                title: 'Алдаа',
+                description: 'Мэдээлэл татахад алдаа гарлаа. Интернэт холболтоо шалгана уу.',
                 variant: 'destructive'
             });
             setRecords([]);
@@ -249,78 +260,75 @@ export default function WorkerDashboardPage() {
         needsHelp: records.filter(r => r.status === 'тусламж хэрэгтэй').length
     };
 
-    if (loading) {
+    if (!mounted || loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading maintenance records...</p>
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+                <DashboardNavbar />
+                <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                        <p className="text-gray-600 dark:text-gray-400">Ачааллаж байна...</p>
+                    </div>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 p-4">
-            <div className="max-w-6xl mx-auto">
-                <div className="mb-6">
-                    <div className="flex items-center gap-4 mb-4">
-                        <Button variant="outline" size="sm" asChild>
-                            <Link href="/dashboard">
-                                <ArrowLeft className="h-4 w-4 mr-2" />
-                                Буцах
-                            </Link>
-                        </Button>
-                    </div>
-                    <h1 className="text-3xl font-bold text-gray-900">Ажилчны самбар</h1>
-                    <p className="text-gray-600">Утасны дуудлагын бүртгэлийг удирдах</p>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+            <DashboardNavbar />
+            
+            <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+                <div className="mb-8">
+                    <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-2">Ажилчны самбар</h1>
+                    <p className="text-gray-600 dark:text-gray-400">Утасны дуудлагын бүртгэлийг удирдах</p>
                 </div>
 
                 {/* Statistics */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <Card>
+                    <Card className="bg-white dark:bg-slate-900 border-2">
                         <CardContent className="p-4">
                             <div className="flex items-center gap-2">
                                 <Phone className="h-5 w-5 text-blue-600" />
                                 <div>
-                                    <p className="text-2xl font-bold">{stats.total}</p>
-                                    <p className="text-xs text-gray-600">Нийт бүртгэл</p>
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
+                                    <p className="text-xs text-gray-600 dark:text-gray-400">Нийт бүртгэл</p>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="bg-white dark:bg-slate-900 border-2">
                         <CardContent className="p-4">
                             <div className="flex items-center gap-2">
                                 <AlertCircle className="h-5 w-5 text-red-600" />
                                 <div>
-                                    <p className="text-2xl font-bold">{stats.open}</p>
-                                    <p className="text-xs text-gray-600">Нээлттэй</p>
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.open}</p>
+                                    <p className="text-xs text-gray-600 dark:text-gray-400">Нээлттэй</p>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="bg-white dark:bg-slate-900 border-2">
                         <CardContent className="p-4">
                             <div className="flex items-center gap-2">
                                 <Clock className="h-5 w-5 text-blue-600" />
                                 <div>
-                                    <p className="text-2xl font-bold">{stats.received}</p>
-                                    <p className="text-xs text-gray-600">Хүлээж авсан</p>
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.received}</p>
+                                    <p className="text-xs text-gray-600 dark:text-gray-400">Хүлээж авсан</p>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="bg-white dark:bg-slate-900 border-2">
                         <CardContent className="p-4">
                             <div className="flex items-center gap-2">
                                 <CheckCircle2 className="h-5 w-5 text-green-600" />
                                 <div>
-                                    <p className="text-2xl font-bold">{stats.completed}</p>
-                                    <p className="text-xs text-gray-600">Болсон</p>
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.completed}</p>
+                                    <p className="text-xs text-gray-600 dark:text-gray-400">Болсон</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -328,13 +336,13 @@ export default function WorkerDashboardPage() {
                 </div>
 
                 {stats.needsHelp > 0 && (
-                    <Card className="mb-6 border-orange-200 bg-orange-50">
+                    <Card className="mb-6 border-2 border-orange-200 bg-orange-50 dark:bg-orange-900/20">
                         <CardContent className="p-4">
                             <div className="flex items-center gap-2">
                                 <HelpCircle className="h-5 w-5 text-orange-600" />
                                 <div>
-                                    <p className="text-lg font-semibold text-orange-800">{stats.needsHelp} тусламж хэрэгтэй</p>
-                                    <p className="text-sm text-orange-600">Эдгээр ажлууд нэмэлт тусламж шаардаж байна</p>
+                                    <p className="text-lg font-semibold text-orange-800 dark:text-orange-200">{stats.needsHelp} тусламж хэрэгтэй</p>
+                                    <p className="text-sm text-orange-600 dark:text-orange-300">Эдгээр ажлууд нэмэлт тусламж шаардаж байна</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -342,15 +350,15 @@ export default function WorkerDashboardPage() {
                 )}
 
                 {/* Maintenance Records */}
-                <Card>
+                <Card className="bg-white dark:bg-slate-900 border-2">
                     <CardHeader>
-                        <CardTitle>Утасны дуудлагын бүртгэл</CardTitle>
+                        <CardTitle className="text-gray-900 dark:text-white">Утасны дуудлагын бүртгэл</CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
                         {records.length > 0 ? (
-                            <div className="divide-y divide-gray-200">
+                            <div className="divide-y divide-gray-200 dark:divide-gray-700">
                                 {records.map((record) => (
-                                    <div key={record.id} className="p-4 hover:bg-gray-50">
+                                    <div key={record.id} className="p-4 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
                                                 <div className="flex-shrink-0">
@@ -358,7 +366,7 @@ export default function WorkerDashboardPage() {
                                                 </div>
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-2 mb-1">
-                                                        <p className="font-medium text-gray-900">
+                                                        <p className="font-medium text-gray-900 dark:text-white">
                                                             {getIssueTypeLabel(record.issue_type)}
                                                         </p>
                                                         <div className="flex items-center gap-1">
@@ -380,18 +388,18 @@ export default function WorkerDashboardPage() {
                                                             </Badge>
                                                         </div>
                                                     </div>
-                                                    <p className="text-sm text-gray-600">
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400">
                                                         {record.apartment?.building?.name} - Unit {record.apartment?.unit_number} • {record.phone_number}
                                                     </p>
                                                     {record.description && (
-                                                        <p className="text-xs text-gray-500 mt-1">{record.description}</p>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{record.description}</p>
                                                     )}
                                                     {record.worker_notes && (
-                                                        <p className="text-xs text-orange-600 mt-1 font-medium">
+                                                        <p className="text-xs text-orange-600 dark:text-orange-400 mt-1 font-medium">
                                                             Тэмдэглэл: {record.worker_notes}
                                                         </p>
                                                     )}
-                                                    <p className="text-xs text-gray-400 mt-1">
+                                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                                                         Үүссэн: {new Date(record.created_at).toLocaleString()}
                                                     </p>
                                                 </div>
@@ -425,8 +433,8 @@ export default function WorkerDashboardPage() {
                         ) : (
                             <div className="p-8 text-center">
                                 <Phone className="mx-auto h-12 w-12 text-gray-400" />
-                                <h3 className="mt-2 text-sm font-medium text-gray-900">Утасны дуудлагын бүртгэл байхгүй</h3>
-                                <p className="mt-1 text-sm text-gray-500">Утасны дуудлагын бүртгэл олдсонгүй.</p>
+                                <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">Утасны дуудлагын бүртгэл байхгүй</h3>
+                                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Утасны дуудлагын бүртгэл олдсонгүй.</p>
                             </div>
                         )}
                     </CardContent>
