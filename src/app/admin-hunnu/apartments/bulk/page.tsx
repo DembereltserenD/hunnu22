@@ -3,6 +3,8 @@ import { getApartmentsForSelect, getWorkersForSelect } from '../../phone-issues/
 import { getBuildingsForSelect } from '../../apartments/actions';
 import { BulkPhoneIssueForm } from '@/components/admin/bulk-phone-issue-form';
 
+export const dynamic = 'force-dynamic';
+
 export default async function BulkImportApartmentsPage() {
     const [apartments, workers, buildings] = await Promise.all([
         getApartmentsForSelect(),

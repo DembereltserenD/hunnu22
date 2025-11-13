@@ -78,9 +78,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     }, []);
 
     const NavContent = () => {
-        // Debug logging to check for duplicate renders
-        console.log('NavContent rendering, uniqueNavItems count:', uniqueNavItems.length);
-
         return (
             <div className="flex flex-col h-full bg-white">
                 <div className="p-6 border-b border-gray-200">
@@ -90,8 +87,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                     {uniqueNavItems.map((item, index) => {
                         const Icon = item.icon;
                         const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-
-                        console.log(`Rendering nav item ${index}: ${item.label}`);
 
                         return (
                             <Link
