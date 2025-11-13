@@ -14,13 +14,29 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
+interface DatePickerWithRangeProps extends React.HTMLAttributes<HTMLDivElement> {
+  date?: DateRange;
+  onDateChange?: (date: DateRange | undefined) => void;
+}
+
 export default function DatePickerWithRange({
   className,
-}: React.HTMLAttributes<HTMLDivElement>) {
-  const [date, setDate] = React.useState<DateRange | undefined>({
+  date,
+  onDateChange,
+}: DatePickerWithRangeProps) {
+  const [internalDate, setInternalDate] = React.useState<DateRange | undefined>({
     from: new Date(2022, 0, 20),
     to: addDays(new Date(2022, 0, 20), 20),
   });
+
+  const currentDate = date !== undefined ? date : internalDate;
+  const handleDateChange = (newDate: DateRange | undefined) => {
+    if (onDateChange) {
+      onDateChange(newDate);
+    } else {
+      setInternalDate(newDate);
+    }
+  };
 
   return (
     <div className={cn("grid gap-2", className)}>
@@ -31,18 +47,18 @@ export default function DatePickerWithRange({
             variant={"outline"}
             className={cn(
               "w-[300px] justify-start text-left font-normal",
-              !date && "text-muted-foreground",
+              !currentDate && "text-muted-foreground",
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {date?.from ? (
-              date.to ? (
+            {currentDate?.from ? (
+              currentDate.to ? (
                 <>
-                  {format(date.from, "LLL dd, y")} -{" "}
-                  {format(date.to, "LLL dd, y")}
+                  {format(currentDate.from, "LLL dd, y")} -{" "}
+                  {format(currentDate.to, "LLL dd, y")}
                 </>
               ) : (
-                format(date.from, "LLL dd, y")
+                format(currentDate.from, "LLL dd, y")
               )
             ) : (
               <span>Pick a date</span>
@@ -53,9 +69,9 @@ export default function DatePickerWithRange({
           <Calendar
             initialFocus
             mode="range"
-            defaultMonth={date?.from}
-            selected={date}
-            onSelect={setDate}
+            defaultMonth={currentDate?.from}
+            selected={currentDate}
+            onSelect={handleDateChange}
             numberOfMonths={2}
           />
         </PopoverContent>
@@ -63,3 +79,5 @@ export default function DatePickerWithRange({
     </div>
   );
 }
+
+export { DatePickerWithRange };

@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
-import { Link } from "next/link";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
@@ -225,29 +225,10 @@ function WorkersPageContent() {
     );
 }
 
-export default async function WorkersPage() {
+export default function WorkersPage() {
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Ажилчид</h1>
-                    <p className="text-gray-600 dark:text-gray-400 mt-2">Ажилчдын мэдээллийг удирдах</p>
-                </div>
-                <Link href="/admin-hunnu/workers/new">
-                    <Button className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Шинэ ажилчин нэмэх
-                    </Button>
-                </Link>
-            </div>
-
-            <EntityTable
-                data={workersState.data}
-                columns={workerColumns}
-                entityType="workers"
-                entityLabel="Ажилчин"
-                onDelete={handleDelete}
-            />
-        </div>
+        <Suspense fallback={<div>Loading...</div>}>
+            <WorkersPageContent />
+        </Suspense>
     );
 }

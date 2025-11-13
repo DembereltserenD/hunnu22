@@ -56,7 +56,7 @@ export async function getPhoneIssues() {
 }
 
 export async function getPhoneIssuesSummary(dateRange?: { from?: Date; to?: Date }) {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     try {
         let query = supabase
