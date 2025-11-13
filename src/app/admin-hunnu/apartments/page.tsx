@@ -5,6 +5,8 @@ export const dynamic = 'force-dynamic';
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
+import { Link } from "next/link";
+import { Plus } from "lucide-react";
 
 import { EntityTable, type ColumnDef } from "@/components/admin/entity-table";
 import { EntityFilters, type FilterConfig } from "@/components/admin/entity-filters";
@@ -515,10 +517,37 @@ function ApartmentsPageContent() {
     );
 }
 
-export default function ApartmentsPage() {
+export default async function ApartmentsPage() {
     return (
-        <Suspense fallback={<div>Loading...</div>}>
-            <ApartmentsPageContent />
-        </Suspense>
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Байрууд</h1>
+                    <p className="text-gray-600 dark:text-gray-400 mt-2">Байрны мэдээллийг удирдах</p>
+                </div>
+                <div className="flex gap-2">
+                    <Link href="/admin-hunnu/apartments/bulk">
+                        <Button variant="outline" className="border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-800">
+                            <Upload className="mr-2 h-4 w-4" />
+                            Олноор нэмэх
+                        </Button>
+                    </Link>
+                    <Link href="/admin-hunnu/apartments/new">
+                        <Button className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Шинэ байр нэмэх
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+
+            <EntityTable
+                data={apartments}
+                columns={apartmentColumns}
+                entityType="apartments"
+                entityLabel="Байр"
+                onDelete={deleteApartment}
+            />
+        </div>
     );
 }
