@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Building, Home, Phone, BarChart3, TrendingUp } from "lucide-react";
+import { Users, Building, Home, Phone, BarChart, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import DashboardNavbar from "@/components/dashboard-navbar";
 
@@ -9,7 +9,7 @@ export default function AdminDashboardPage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
             <DashboardNavbar />
-            
+
             <div className="container mx-auto p-4 sm:p-6 lg:p-8">
                 <div className="mb-8">
                     <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-2">
@@ -112,7 +112,7 @@ export default function AdminDashboardPage() {
                                     Эрүүл мэндийн статистик
                                 </CardTitle>
                                 <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg group-hover:bg-red-200 dark:group-hover:bg-red-900/50 transition-colors">
-                                    <BarChart3 className="h-6 w-6 text-red-600 dark:text-red-400" />
+                                    <BarChart className="h-6 w-6 text-red-600 dark:text-red-400" />
                                 </div>
                             </CardHeader>
                             <CardContent>
