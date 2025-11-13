@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Building, Home, Phone } from "lucide-react";
+import { Users, Building, Home, Phone, MessageSquare } from "lucide-react";
 
 export default function AdminPage() {
     return (
@@ -37,6 +37,16 @@ export default function AdminPage() {
                             <Phone className="h-8 w-8 text-orange-600 dark:text-orange-400 mb-2" />
                             <CardTitle className="text-gray-900 dark:text-white">Утасны асуудал</CardTitle>
                             <CardDescription className="text-gray-600 dark:text-gray-400">Утасны асуудлыг удирдах</CardDescription>
+                        </CardHeader>
+                    </Card>
+                </Link>
+
+                <Link href="/admin-hunnu/worker-requests">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700">
+                        <CardHeader>
+                            <MessageSquare className="h-8 w-8 text-purple-600 dark:text-purple-400 mb-2" />
+                            <CardTitle className="text-gray-900 dark:text-white">Ажилчдын хүсэлт</CardTitle>
+                            <CardDescription className="text-gray-600 dark:text-gray-400">Хүсэлтүүдийг харах, удирдах</CardDescription>
                         </CardHeader>
                     </Card>
                 </Link>

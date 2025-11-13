@@ -81,7 +81,7 @@ export default function DashboardPage() {
         (issue.status === 'цэвэрлэх хэрэгтэй' || issue.status === 'open')
     ).length;
 
-    const cleanedTotal = data.phoneIssues.filter((issue: any) => 
+    const cleanedTotal = data.phoneIssues.filter((issue: any) =>
         issue.issue_type === 'smoke_detector' && issue.status === 'болсон'
     ).length;
 
@@ -91,8 +91,8 @@ export default function DashboardPage() {
     ).length;
 
     const totalSmokeDetectorIssues = needsCleaningTotal + cleanedTotal + needsHelpTotal;
-    const completionRate = totalSmokeDetectorIssues > 0 
-        ? Math.round((cleanedTotal / totalSmokeDetectorIssues) * 100) 
+    const completionRate = totalSmokeDetectorIssues > 0
+        ? Math.round((cleanedTotal / totalSmokeDetectorIssues) * 100)
         : 0;
 
     return (
@@ -221,44 +221,38 @@ export default function DashboardPage() {
                                                     </div>
                                                 </CardHeader>
                                                 <CardContent className="relative">
-                                                    <div className="space-y-3">
-                                                        {needsCleaning > 0 && (
-                                                            <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-900/30">
-                                                                <span className="flex items-center gap-2 text-sm font-medium text-yellow-700 dark:text-yellow-400">
-                                                                    <Flame className="w-4 h-4" />
-                                                                    SD цэвэрлэх хэрэгтэй
-                                                                </span>
-                                                                <span className="font-bold text-yellow-600 dark:text-yellow-400 text-lg">{needsCleaning}</span>
-                                                            </div>
-                                                        )}
+                                                    {needsCleaning === 0 && cleaned === 0 && commFault === 0 ? (
+                                                        <div className="text-center py-4 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
+                                                            <CheckCircle2 className="w-5 h-5 mx-auto mb-1 text-green-500" />
+                                                            SD асуудал байхгүй
+                                                        </div>
+                                                    ) : (
+                                                        <div className="grid grid-cols-3 gap-2">
+                                                            {needsCleaning > 0 && (
+                                                                <div className="flex flex-col items-center p-2 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-900/30">
+                                                                    <Flame className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mb-1" />
+                                                                    <span className="text-xs font-medium text-yellow-700 dark:text-yellow-400 text-center leading-tight">Цэвэрлэх</span>
+                                                                    <span className="font-bold text-yellow-600 dark:text-yellow-400 text-lg mt-1">{needsCleaning}</span>
+                                                                </div>
+                                                            )}
 
-                                                        {cleaned > 0 && (
-                                                            <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-900/30">
-                                                                <span className="flex items-center gap-2 text-sm font-medium text-green-700 dark:text-green-400">
-                                                                    <CheckCircle2 className="w-4 h-4" />
-                                                                    SD цэвэрлэгдсэн
-                                                                </span>
-                                                                <span className="font-bold text-green-600 dark:text-green-400 text-lg">{cleaned}</span>
-                                                            </div>
-                                                        )}
+                                                            {cleaned > 0 && (
+                                                                <div className="flex flex-col items-center p-2 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-900/30">
+                                                                    <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 mb-1" />
+                                                                    <span className="text-xs font-medium text-green-700 dark:text-green-400 text-center leading-tight">Цэвэрлэгдсэн</span>
+                                                                    <span className="font-bold text-green-600 dark:text-green-400 text-lg mt-1">{cleaned}</span>
+                                                                </div>
+                                                            )}
 
-                                                        {commFault > 0 && (
-                                                            <div className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-900/30">
-                                                                <span className="flex items-center gap-2 text-sm font-medium text-orange-700 dark:text-orange-400">
-                                                                    <Phone className="w-4 h-4" />
-                                                                    SD тусламж хэрэгтэй
-                                                                </span>
-                                                                <span className="font-bold text-orange-600 dark:text-orange-400 text-lg">{commFault}</span>
-                                                            </div>
-                                                        )}
-
-                                                        {needsCleaning === 0 && cleaned === 0 && commFault === 0 && (
-                                                            <div className="text-center py-4 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
-                                                                <CheckCircle2 className="w-5 h-5 mx-auto mb-1 text-green-500" />
-                                                                SD асуудал байхгүй
-                                                            </div>
-                                                        )}
-                                                    </div>
+                                                            {commFault > 0 && (
+                                                                <div className="flex flex-col items-center p-2 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-900/30">
+                                                                    <Phone className="w-4 h-4 text-orange-600 dark:text-orange-400 mb-1" />
+                                                                    <span className="text-xs font-medium text-orange-700 dark:text-orange-400 text-center leading-tight">Тусламж</span>
+                                                                    <span className="font-bold text-orange-600 dark:text-orange-400 text-lg mt-1">{commFault}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </CardContent>
                                             </Card>
                                         </Link>
@@ -332,9 +326,9 @@ export default function DashboardPage() {
                                                                             variant="secondary"
                                                                             className={
                                                                                 issue.status === 'болсон' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                                                                issue.status === 'хүлээж авсан' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                                                                                issue.status === 'тусламж хэрэгтэй' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
-                                                                                'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                                                                    issue.status === 'хүлээж авсан' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                                                                                        issue.status === 'тусламж хэрэгтэй' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                                                                                            'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                                                                             }
                                                                         >
                                                                             {issue.status === 'болсон' && 'Болсон'}
