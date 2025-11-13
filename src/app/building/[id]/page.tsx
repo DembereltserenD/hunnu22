@@ -261,63 +261,7 @@ export default function BuildingDetailPage() {
             </Card>
           </div>
 
-          {/* Maintenance Summary */}
-          {data.phoneIssues.length > 0 && (
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Flame className="w-5 h-5 text-green-600" />
-                  Building Maintenance Summary
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="p-4 bg-green-50 rounded-lg">
-                    <h4 className="font-semibold text-green-800">Total SD Cleaned</h4>
-                    <p className="text-2xl font-bold text-green-600">{maintenanceStats.totalSmokeDetectorsCleaned}</p>
-                    <p className="text-sm text-green-600">
-                      From {maintenanceStats.completedMaintenanceRecords} sessions
-                    </p>
-                  </div>
 
-                  {maintenanceStats.lastMaintenanceDate && (
-                    <div className="p-4 bg-blue-50 rounded-lg">
-                      <h4 className="font-semibold text-blue-800">Last Maintenance</h4>
-                      <p className="text-lg font-bold text-blue-600">
-                        {new Date(maintenanceStats.lastMaintenanceDate).toLocaleDateString()}
-                      </p>
-                      <p className="text-sm text-blue-600">
-                        {Math.floor((new Date().getTime() - new Date(maintenanceStats.lastMaintenanceDate).getTime()) / (1000 * 60 * 60 * 24))} days ago
-                      </p>
-                    </div>
-                  )}
-
-                  {maintenanceStats.workersInvolved.length > 0 && (
-                    <div className="p-4 bg-purple-50 rounded-lg">
-                      <h4 className="font-semibold text-purple-800">Workers</h4>
-                      <p className="text-2xl font-bold text-purple-600">{maintenanceStats.workersInvolved.length}</p>
-                      <div className="text-sm text-purple-600">
-                        {maintenanceStats.workersInvolved.slice(0, 2).map((worker, index) => (
-                          <p key={index}>{worker}</p>
-                        ))}
-                        {maintenanceStats.workersInvolved.length > 2 && (
-                          <p>+{maintenanceStats.workersInvolved.length - 2} more</p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="p-4 bg-gray-50 rounded-lg">
-                    <h4 className="font-semibold text-gray-800">Phone Issues</h4>
-                    <p className="text-2xl font-bold text-gray-600">{maintenanceStats.phoneCallIssues}</p>
-                    <p className="text-sm text-gray-600">
-                      Domophone & Light Bulb calls
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Recent Maintenance Activity */}
           {maintenanceStats.maintenanceRecords.length > 0 && (

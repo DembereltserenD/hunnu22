@@ -25,6 +25,7 @@ function VisitFormContent() {
     apartments: [],
     buildings: []
   });
+  const [currentWorker, setCurrentWorker] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -32,6 +33,17 @@ function VisitFormContent() {
   useEffect(() => {
     async function loadData() {
       try {
+        // Load worker from localStorage
+        const storedWorker = localStorage.getItem('selectedWorker');
+        if (!storedWorker) {
+          alert('Эхлээд ажилчин сонгоно уу');
+          router.push('/worker-select');
+          return;
+        }
+
+        const worker = JSON.parse(storedWorker);
+        setCurrentWorker(worker);
+
         const supabase = createClient();
 
         const [workersRes, apartmentsRes, buildingsRes] = await Promise.all([
@@ -82,15 +94,17 @@ function VisitFormContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!apartment || !formData.status) return;
+    if (!apartment || !formData.status || !currentWorker) {
+      alert('Ажилчин сонгоогүй байна');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
-      // TODO: Implement visit logging
       const supabase = createClient();
       const { error } = await supabase.from('visits').insert({
         apartment_id: apartment.id,
-        worker_id: 'temp-worker-id', // TODO: Get from worker context
+        worker_id: currentWorker.id,
         visit_date: new Date(formData.visitDate).toISOString(),
         status: formData.status,
         notes: formData.notes || null,
@@ -210,18 +224,16 @@ function VisitFormContent() {
 
                 <div className="space-y-2">
                   <Label htmlFor="worker">Maintenance Worker</Label>
-                  <Select value="" disabled>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select worker" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {data.workers.map(worker => (
-                        <SelectItem key={worker.id} value={worker.id}>
-                          {worker.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="font-medium text-gray-900">{currentWorker?.name || 'Loading...'}</span>
+                    <Badge variant="outline" className="ml-auto bg-green-50 text-green-700 border-green-300">
+                      Идэвхтэй
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Logged in as {currentWorker?.name}. Visit will be recorded under your name.
+                  </p>
                 </div>
 
                 <div className="space-y-2">

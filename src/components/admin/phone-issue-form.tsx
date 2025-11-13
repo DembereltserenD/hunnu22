@@ -431,7 +431,7 @@ export function PhoneIssueForm({ phoneIssue, apartments, workers, buildings }: P
                             <SelectValue placeholder="Select worker (optional)" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="none">No worker assigned</SelectItem>
+                            <SelectItem value="none">Нээлттэй (any worker can assign)</SelectItem>
                             {workers.map((worker) => (
                                 <SelectItem key={worker.id} value={worker.id}>
                                     {worker.name}

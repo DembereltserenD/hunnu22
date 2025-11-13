@@ -8,11 +8,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Phone, CheckCircle2, Clock, AlertCircle, HelpCircle, ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { Phone, CheckCircle2, Clock, AlertCircle, HelpCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { createClient } from '../../../supabase/client';
 import { useToast } from "@/components/ui/use-toast";
 import DashboardNavbar from "@/components/dashboard-navbar";
+
+interface Worker {
+    id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+}
 
 interface MaintenanceRecord {
     id: string;
@@ -21,17 +28,22 @@ interface MaintenanceRecord {
     phone_number: string;
     description?: string;
     worker_notes?: string;
+    worker_id?: string;
     created_at: string;
     apartment: {
-        unit_number: string;
+        unit_number: string | null;
         building: {
-            name: string;
-        };
+            name: string | null;
+        } | null;
+    } | null;
+    worker?: {
+        name: string;
     };
 }
 
 export default function WorkerDashboardPage() {
     const [records, setRecords] = useState<MaintenanceRecord[]>([]);
+    const [currentWorker, setCurrentWorker] = useState<Worker | null>(null);
     const [loading, setLoading] = useState(true);
     const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
     const [selectedRecord, setSelectedRecord] = useState<MaintenanceRecord | null>(null);
@@ -39,9 +51,37 @@ export default function WorkerDashboardPage() {
     const [showNotesDialog, setShowNotesDialog] = useState(false);
     const [mounted, setMounted] = useState(false);
     const { toast } = useToast();
+    const router = useRouter();
 
     useEffect(() => {
         setMounted(true);
+
+        // Load worker from localStorage
+        const storedWorker = localStorage.getItem('selectedWorker');
+        if (storedWorker) {
+            try {
+                const worker = JSON.parse(storedWorker);
+                setCurrentWorker(worker);
+            } catch (error) {
+                console.error('Error parsing stored worker:', error);
+                toast({
+                    title: 'Алдаа',
+                    description: 'Ажилчны мэдээлэл олдсонгүй. Дахин нэвтэрнэ үү.',
+                    variant: 'destructive'
+                });
+                router.push('/worker-select');
+                return;
+            }
+        } else {
+            toast({
+                title: 'Анхааруулга',
+                description: 'Эхлээд ажилчин сонгоно уу',
+                variant: 'destructive'
+            });
+            router.push('/worker-select');
+            return;
+        }
+
         loadMaintenanceRecords();
     }, []);
 
@@ -62,23 +102,11 @@ export default function WorkerDashboardPage() {
                 return;
             }
 
-            // Get phone issues with apartment and building data, excluding smoke detector issues
+            // Get phone issues first, excluding smoke detector issues
             const { data: issues, error } = await supabase
                 .from('phone_issues')
-                .select(`
-          id,
-          issue_type,
-          status,
-          phone_number,
-          description,
-          worker_notes,
-          created_at,
-          apartment:apartments(
-            unit_number,
-            building:buildings(name)
-          )
-        `)
-                .neq('issue_type', 'smoke_detector') // Filter out smoke detector issues
+                .select('*')
+                .neq('issue_type', 'smoke_detector')
                 .order('created_at', { ascending: false });
 
             if (error) {
@@ -92,21 +120,48 @@ export default function WorkerDashboardPage() {
                 return;
             }
 
+            // Get apartments with buildings
+            const { data: apartments } = await supabase
+                .from('apartments')
+                .select(`
+                    id,
+                    unit_number,
+                    building:buildings(name)
+                `);
+
+            // Get workers
+            const { data: workers } = await supabase
+                .from('workers')
+                .select('id, name');
+
+            // Create lookup maps
+            const apartmentMap = new Map(apartments?.map(apt => [apt.id, apt]) || []);
+            const workerMap = new Map(workers?.map(w => [w.id, w]) || []);
+
             // Transform the data to match our interface
-            const transformedRecords = (issues || []).map((issue: any) => ({
-                ...issue,
-                apartment: Array.isArray(issue.apartment) && issue.apartment.length > 0
-                    ? {
-                        unit_number: issue.apartment[0].unit_number,
-                        building: Array.isArray(issue.apartment[0].building) && issue.apartment[0].building.length > 0
-                            ? { name: issue.apartment[0].building[0].name }
-                            : { name: 'Unknown Building' }
-                    }
-                    : {
-                        unit_number: 'Unknown Unit',
-                        building: { name: 'Unknown Building' }
-                    }
-            }));
+            const transformedRecords = (issues || []).map((issue: any) => {
+                // Get apartment data from map
+                const apartment = issue.apartment_id ? apartmentMap.get(issue.apartment_id) : null;
+                let apartmentData = null;
+
+                if (apartment) {
+                    const building = Array.isArray(apartment.building) ? apartment.building[0] : apartment.building;
+                    apartmentData = {
+                        unit_number: apartment.unit_number || null,
+                        building: building ? { name: building.name || null } : null
+                    };
+                }
+
+                // Get worker data from map
+                const worker = issue.worker_id ? workerMap.get(issue.worker_id) : null;
+                const workerData = worker ? { name: worker.name } : undefined;
+
+                return {
+                    ...issue,
+                    apartment: apartmentData,
+                    worker: workerData
+                };
+            });
 
             setRecords(transformedRecords);
         } catch (error: any) {
@@ -123,12 +178,24 @@ export default function WorkerDashboardPage() {
     };
 
     const updateRecordStatus = async (recordId: string, newStatus: 'open' | 'хүлээж авсан' | 'болсон' | 'тусламж хэрэгтэй', notes?: string) => {
+        // Validate worker selection
+        if (!currentWorker) {
+            toast({
+                title: 'Анхааруулга',
+                description: 'Ажилчин сонгоно уу!',
+                variant: 'destructive'
+            });
+            router.push('/worker-select');
+            return;
+        }
+
         setUpdatingStatus(recordId);
         try {
             const supabase = createClient();
 
             const updateData: any = {
                 status: newStatus,
+                worker_id: currentWorker.id,
                 updated_at: new Date().toISOString()
             };
 
@@ -156,7 +223,13 @@ export default function WorkerDashboardPage() {
             // Update local state with the Mongolian status for display
             setRecords(prev => prev.map(record =>
                 record.id === recordId
-                    ? { ...record, status: newStatus, worker_notes: notes || record.worker_notes }
+                    ? {
+                        ...record,
+                        status: newStatus,
+                        worker_notes: notes || record.worker_notes,
+                        worker_id: currentWorker.id,
+                        worker: { name: currentWorker.name }
+                    }
                     : record
             ));
 
@@ -164,6 +237,9 @@ export default function WorkerDashboardPage() {
                 title: 'Амжилттай',
                 description: `Статус ${getStatusLabel(newStatus)} болж өөрчлөгдлөө`,
             });
+
+            // Reload records to get fresh data from database
+            await loadMaintenanceRecords();
         } catch (error) {
             console.error('Error updating status:', error);
             toast({
@@ -177,6 +253,17 @@ export default function WorkerDashboardPage() {
     };
 
     const handleStatusChange = (recordId: string, newStatus: 'open' | 'хүлээж авсан' | 'болсон' | 'тусламж хэрэгтэй') => {
+        // Validate worker is selected before allowing any status change
+        if (!currentWorker) {
+            toast({
+                title: 'Анхааруулга',
+                description: 'Эхлээд ажилчин сонгоно уу!',
+                variant: 'destructive'
+            });
+            router.push('/worker-select');
+            return;
+        }
+
         if (newStatus === 'тусламж хэрэгтэй') {
             // Show dialog to get worker notes
             const record = records.find(r => r.id === recordId);
@@ -260,7 +347,7 @@ export default function WorkerDashboardPage() {
         needsHelp: records.filter(r => r.status === 'тусламж хэрэгтэй').length
     };
 
-    if (!mounted || loading) {
+    if (!mounted || loading || !currentWorker) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
                 <DashboardNavbar />
@@ -277,7 +364,7 @@ export default function WorkerDashboardPage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
             <DashboardNavbar />
-            
+
             <div className="container mx-auto p-4 sm:p-6 lg:p-8">
                 <div className="mb-8">
                     <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-2">Ажилчны самбар</h1>
@@ -358,53 +445,134 @@ export default function WorkerDashboardPage() {
                         {records.length > 0 ? (
                             <div className="divide-y divide-gray-200 dark:divide-gray-700">
                                 {records.map((record) => (
-                                    <div key={record.id} className="p-4 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex-shrink-0">
+                                    <div key={record.id} className="p-5 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
+                                        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                                            {/* Left Section - Issue Details */}
+                                            <div className="flex gap-4 flex-1">
+                                                <div className="flex-shrink-0 mt-1">
                                                     {getIssueIcon(record.issue_type)}
                                                 </div>
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        <p className="font-medium text-gray-900 dark:text-white">
+                                                <div className="flex-1 min-w-0">
+                                                    {/* Header with Issue Type and Status */}
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <h3 className="font-semibold text-gray-900 dark:text-white text-base">
                                                             {getIssueTypeLabel(record.issue_type)}
-                                                        </p>
-                                                        <div className="flex items-center gap-1">
+                                                        </h3>
+                                                        <Badge
+                                                            variant={
+                                                                record.status === 'болсон' ? 'default' :
+                                                                    record.status === 'хүлээж авсан' ? 'secondary' :
+                                                                        record.status === 'тусламж хэрэгтэй' ? 'destructive' : 'outline'
+                                                            }
+                                                            className={`flex items-center gap-1 ${record.status === 'болсон' ? 'bg-green-100 text-green-800' :
+                                                                record.status === 'хүлээж авсан' ? 'bg-blue-100 text-blue-800' :
+                                                                    record.status === 'тусламж хэрэгтэй' ? 'bg-orange-100 text-orange-800' :
+                                                                        'bg-red-100 text-red-800'
+                                                                }`}
+                                                        >
                                                             {getStatusIcon(record.status)}
-                                                            <Badge
-                                                                variant={
-                                                                    record.status === 'болсон' ? 'default' :
-                                                                        record.status === 'хүлээж авсан' ? 'secondary' :
-                                                                            record.status === 'тусламж хэрэгтэй' ? 'destructive' : 'outline'
-                                                                }
-                                                                className={
-                                                                    record.status === 'болсон' ? 'bg-green-100 text-green-800' :
-                                                                        record.status === 'хүлээж авсан' ? 'bg-blue-100 text-blue-800' :
-                                                                            record.status === 'тусламж хэрэгтэй' ? 'bg-orange-100 text-orange-800' :
-                                                                                'bg-red-100 text-red-800'
-                                                                }
-                                                            >
-                                                                {getStatusLabel(record.status)}
-                                                            </Badge>
+                                                            {getStatusLabel(record.status)}
+                                                        </Badge>
+                                                    </div>
+
+                                                    {/* Location and Phone */}
+                                                    <div className="space-y-1 mb-3">
+                                                        {(() => {
+                                                            const buildingName = record.apartment?.building?.name;
+                                                            const unitNumber = record.apartment?.unit_number;
+
+                                                            // Filter out "Unknown" values
+                                                            const hasValidBuilding = buildingName && buildingName !== 'Unknown Building' && buildingName.trim() !== '';
+                                                            const hasValidUnit = unitNumber && unitNumber !== 'Unknown Unit' && unitNumber.trim() !== '';
+
+                                                            if (hasValidBuilding || hasValidUnit) {
+                                                                return (
+                                                                    <div className="flex items-center gap-2 text-sm">
+                                                                        {hasValidBuilding && (
+                                                                            <>
+                                                                                <span className="font-medium text-gray-700 dark:text-gray-300">
+                                                                                    {buildingName}-р байр
+                                                                                </span>
+                                                                                {hasValidUnit && <span className="text-gray-400">•</span>}
+                                                                            </>
+                                                                        )}
+                                                                        {hasValidUnit && (
+                                                                            <span className="text-gray-600 dark:text-gray-400">
+                                                                                {unitNumber} тоот
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            }
+
+                                                            return (
+                                                                <div className="flex items-center gap-2 text-sm">
+                                                                    <span className="text-gray-500 dark:text-gray-400 italic">
+                                                                        Байршил тодорхойгүй
+                                                                    </span>
+                                                                </div>
+                                                            );
+                                                        })()}
+                                                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                                            <Phone className="h-3.5 w-3.5" />
+                                                            {record.phone_number}
                                                         </div>
                                                     </div>
-                                                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                                                        {record.apartment?.building?.name} - Unit {record.apartment?.unit_number} • {record.phone_number}
-                                                    </p>
+
+                                                    {/* Description */}
                                                     {record.description && (
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{record.description}</p>
+                                                        <div className="mb-2 p-2 bg-gray-50 dark:bg-slate-800 rounded text-sm text-gray-700 dark:text-gray-300">
+                                                            {record.description}
+                                                        </div>
                                                     )}
+
+                                                    {/* Worker Notes */}
                                                     {record.worker_notes && (
-                                                        <p className="text-xs text-orange-600 dark:text-orange-400 mt-1 font-medium">
-                                                            Тэмдэглэл: {record.worker_notes}
-                                                        </p>
+                                                        <div className="mb-2 p-2 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded">
+                                                            <p className="text-xs font-medium text-orange-800 dark:text-orange-300 mb-1">
+                                                                Тэмдэглэл:
+                                                            </p>
+                                                            <p className="text-sm text-orange-700 dark:text-orange-400">
+                                                                {record.worker_notes}
+                                                            </p>
+                                                        </div>
                                                     )}
-                                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                                        Үүссэн: {new Date(record.created_at).toLocaleString()}
-                                                    </p>
+
+                                                    {/* Worker Assignment and Date */}
+                                                    <div className="flex flex-wrap items-center gap-3 text-xs">
+                                                        {record.worker ? (
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={`font-medium ${record.worker_id === currentWorker?.id ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                                                                    👤 {record.worker.name}
+                                                                </span>
+                                                                {record.worker_id === currentWorker?.id && (
+                                                                    <Badge variant="outline" className="text-xs py-0 px-1.5 h-5 bg-green-50 text-green-700 border-green-300">
+                                                                        Та
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-300">
+                                                                🔓 Нээлттэй - хэн ч авч болно
+                                                            </Badge>
+                                                        )}
+                                                        <span className="text-gray-400">•</span>
+                                                        <span className="text-gray-500 dark:text-gray-400">
+                                                            {(() => {
+                                                                const date = new Date(record.created_at);
+                                                                const month = date.getMonth() + 1;
+                                                                const day = date.getDate();
+                                                                const hours = date.getHours().toString().padStart(2, '0');
+                                                                const minutes = date.getMinutes().toString().padStart(2, '0');
+                                                                return `${month}-р сар ${day}, ${hours}:${minutes}`;
+                                                            })()}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-2">
+
+                                            {/* Right Section - Status Selector */}
+                                            <div className="flex items-center gap-2 lg:flex-shrink-0">
                                                 <Select
                                                     value={record.status}
                                                     onValueChange={(value: 'open' | 'хүлээж авсан' | 'болсон' | 'тусламж хэрэгтэй') =>
@@ -412,7 +580,7 @@ export default function WorkerDashboardPage() {
                                                     }
                                                     disabled={updatingStatus === record.id}
                                                 >
-                                                    <SelectTrigger className="w-40">
+                                                    <SelectTrigger className="w-full lg:w-44">
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -423,7 +591,7 @@ export default function WorkerDashboardPage() {
                                                     </SelectContent>
                                                 </Select>
                                                 {updatingStatus === record.id && (
-                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
                                                 )}
                                             </div>
                                         </div>
