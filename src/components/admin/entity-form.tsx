@@ -58,10 +58,10 @@ export function EntityForm({
     onSubmit,
     onCancel,
     loading = false,
-    submitLabel = "Save",
-    cancelLabel = "Cancel",
+    submitLabel = "Хадгалах",
+    cancelLabel = "Цуцлах",
     className,
-    loadingText = "Saving...",
+    loadingText = "Хадгалж байна...",
     showLoadingOverlay = false,
 }: EntityFormProps) {
     const { useForm } = require("react-hook-form");
@@ -113,7 +113,7 @@ export function EntityForm({
                                     disabled={disabled || loading}
                                 >
                                     <SelectTrigger>
-                                        <SelectValue placeholder={placeholder || `Select ${label.toLowerCase()}`} />
+                                        <SelectValue placeholder={placeholder || `${label} сонгох`} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {options?.map((option) => (
@@ -234,29 +234,29 @@ export function createFormField(
 
 // Predefined field configurations for common entity types
 export const createWorkerFormFields = (): FormFieldConfig[] => [
-    createFormField("name", "Name", "text", {
-        placeholder: "Enter worker name",
+    createFormField("name", "Нэр", "text", {
+        placeholder: "Ажилчны нэр оруулах",
         required: true,
     }),
-    createFormField("email", "Email", "email", {
-        placeholder: "Enter email address",
+    createFormField("email", "Имэйл", "email", {
+        placeholder: "Имэйл хаяг оруулах",
     }),
-    createFormField("phone", "Phone", "tel", {
-        placeholder: "Enter phone number",
+    createFormField("phone", "Утас", "tel", {
+        placeholder: "Утасны дугаар оруулах",
     }),
 ];
 
 export const createBuildingFormFields = (): FormFieldConfig[] => [
-    createFormField("name", "Building Name", "text", {
-        placeholder: "Enter building name",
+    createFormField("name", "Барилгын нэр", "text", {
+        placeholder: "Барилгын нэр оруулах",
         required: true,
     }),
-    createFormField("address", "Address", "textarea", {
-        placeholder: "Enter building address",
+    createFormField("address", "Хаяг", "textarea", {
+        placeholder: "Барилгын хаяг оруулах",
         required: true,
     }),
-    createFormField("total_units", "Total Units", "number", {
-        placeholder: "Enter total number of units",
+    createFormField("total_units", "Нийт байрны тоо", "number", {
+        placeholder: "Нийт байрны тоо оруулах",
         required: true,
     }),
 ];
@@ -264,13 +264,13 @@ export const createBuildingFormFields = (): FormFieldConfig[] => [
 export const createApartmentFormFields = (
     buildings: SelectOption[]
 ): FormFieldConfig[] => [
-        createFormField("building_id", "Building", "select", {
-            placeholder: "Select a building",
+        createFormField("building_id", "Барилга", "select", {
+            placeholder: "Барилга сонгох",
             required: true,
             selectOptions: buildings,
         }),
-        createFormField("unit_number", "Unit Number", "text", {
-            placeholder: "Enter unit number (e.g., 101, 2A)",
+        createFormField("unit_number", "Байрны дугаар", "text", {
+            placeholder: "Байрны дугаар оруулах (жишээ: 101, 2A)",
             required: true,
         }),
     ];

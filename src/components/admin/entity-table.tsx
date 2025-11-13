@@ -61,7 +61,7 @@ export function EntityTable<T extends { id: string }>({
     columns,
     title,
     loading = false,
-    searchPlaceholder = "Search...",
+    searchPlaceholder = "Хайх...",
     onEdit,
     onDelete,
     onAdd,
@@ -70,7 +70,7 @@ export function EntityTable<T extends { id: string }>({
     onPageChange,
     searchQuery = "",
     onSearchChange,
-    emptyMessage = "No data found",
+    emptyMessage = "Мэдээлэл олдсонгүй",
     className,
     hideTitle = false,
     hideAddButton = false,
@@ -174,7 +174,7 @@ export function EntityTable<T extends { id: string }>({
                                         className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-muted"
                                     >
                                         <X className="h-3 w-3" />
-                                        <span className="sr-only">Clear search</span>
+                                        <span className="sr-only">Цэвэрлэх</span>
                                     </Button>
                                 )}
                                 {isSearching && (
@@ -184,7 +184,7 @@ export function EntityTable<T extends { id: string }>({
                             {onAdd && !hideAddButton && (
                                 <Button onClick={onAdd} className="flex items-center gap-2">
                                     <Plus className="h-4 w-4" />
-                                    Add New
+                                    Шинэ нэмэх
                                 </Button>
                             )}
                         </div>
@@ -210,7 +210,7 @@ export function EntityTable<T extends { id: string }>({
                                     className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-muted"
                                 >
                                     <X className="h-3 w-3" />
-                                    <span className="sr-only">Clear search</span>
+                                    <span className="sr-only">Цэвэрлэх</span>
                                 </Button>
                             )}
                             {isSearching && (
@@ -220,7 +220,7 @@ export function EntityTable<T extends { id: string }>({
                         {onAdd && !hideAddButton && (
                             <Button onClick={onAdd} className="flex items-center gap-2">
                                 <Plus className="h-4 w-4" />
-                                Add New
+                                Шинэ нэмэх
                             </Button>
                         )}
                     </div>
@@ -228,7 +228,7 @@ export function EntityTable<T extends { id: string }>({
             )}
             <CardContent>
                 {loading ? (
-                    <LoadingSpinner size="lg" text="Loading data..." />
+                    <LoadingSpinner size="lg" text="Уншиж байна..." />
                 ) : (
                     <>
                         <div className="rounded-md border">
@@ -241,7 +241,7 @@ export function EntityTable<T extends { id: string }>({
                                             </TableHead>
                                         ))}
                                         {(onEdit || onDelete) && (
-                                            <TableHead className="text-right font-medium">Actions</TableHead>
+                                            <TableHead className="text-right font-medium">Үйлдэл</TableHead>
                                         )}
                                     </TableRow>
                                 </TableHeader>
@@ -277,7 +277,7 @@ export function EntityTable<T extends { id: string }>({
                                                                     className="h-8 w-8 p-0"
                                                                 >
                                                                     <Edit className="h-4 w-4" />
-                                                                    <span className="sr-only">Edit</span>
+                                                                    <span className="sr-only">Засах</span>
                                                                 </Button>
                                                             )}
                                                             {onDelete && (
@@ -288,7 +288,7 @@ export function EntityTable<T extends { id: string }>({
                                                                     className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                                                                 >
                                                                     <Trash2 className="h-4 w-4" />
-                                                                    <span className="sr-only">Delete</span>
+                                                                    <span className="sr-only">Устгах</span>
                                                                 </Button>
                                                             )}
                                                         </div>

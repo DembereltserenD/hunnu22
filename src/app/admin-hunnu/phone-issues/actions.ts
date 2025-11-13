@@ -55,130 +55,155 @@ export async function getPhoneIssues() {
   })) as PhoneIssue[];
 }
 
-export async function getPhoneIssuesSummary(): Promise<PhoneIssueSummary[]> {
-  try {
-    const supabase = await createClient();
-    
-    // Get all phone issues first without joins, excluding smoke detector issues
-    const { data: issues, error } = await supabase
-      .from('phone_issues')
-      .select('*')
-      .neq('issue_type', 'smoke_detector') // Filter out smoke detector issues
-      .order('created_at', { ascending: false });
+export async function getPhoneIssuesSummary(dateRange?: { from?: Date; to?: Date }) {
+    const supabase = createClient();
 
-    if (error) {
-      console.error('Error fetching phone issues for summary:', error);
-      throw new Error(`Failed to fetch phone issues summary: ${error.message}`);
-    }
+    try {
+        let query = supabase
+            .from('phone_issues')
+            .select(`
+                *,
+                apartment:apartments(
+                    id,
+                    unit_number,
+                    building:buildings(
+                        id,
+                        name
+                    )
+                ),
+                worker:workers(
+                    id,
+                    name
+                )
+            `)
+            .order('created_at', { ascending: false });
 
-    // If no phone issues exist, return empty array
-    if (!issues || issues.length === 0) {
-      return [];
-    }
+        // Apply date range filter if provided
+        if (dateRange?.from) {
+            query = query.gte('created_at', dateRange.from.toISOString());
+        }
+        if (dateRange?.to) {
+            // Add one day to include the entire end date
+            const endDate = new Date(dateRange.to);
+            endDate.setDate(endDate.getDate() + 1);
+            query = query.lt('created_at', endDate.toISOString());
+        }
 
-    // Get apartments and buildings separately to avoid complex joins
-    const { data: apartments, error: apartmentsError } = await supabase
-      .from('apartments')
-      .select(`
-        id,
-        unit_number,
-        floor,
-        building_id,
-        building:buildings(
-          id,
-          name,
-          address
-        )
-      `);
+        const { data: phoneIssues, error } = await query;
 
-    if (apartmentsError) {
-      console.error('Error fetching apartments:', apartmentsError);
-      throw new Error(`Failed to fetch apartments: ${apartmentsError.message}`);
-    }
+        if (error) {
+            console.error('Error fetching phone issues:', error);
+            throw error;
+        }
 
-    // Get workers separately
-    const { data: workers, error: workersError } = await supabase
-      .from('workers')
-      .select('id, name, email, phone');
+        // If no phone issues exist, return empty array
+        if (!phoneIssues || phoneIssues.length === 0) {
+            return [];
+        }
 
-    if (workersError) {
-      console.error('Error fetching workers:', workersError);
-      throw new Error(`Failed to fetch workers: ${workersError.message}`);
-    }
+        // Get apartments and buildings separately to avoid complex joins
+        const { data: apartments, error: apartmentsError } = await supabase
+          .from('apartments')
+          .select(`
+            id,
+            unit_number,
+            floor,
+            building_id,
+            building:buildings(
+              id,
+              name,
+              address
+            )
+          `);
 
-    // Create lookup maps
-    const apartmentMap = new Map(apartments?.map(apt => [apt.id, apt]) || []);
-    const workerMap = new Map(workers?.map(worker => [worker.id, worker]) || []);
+        if (apartmentsError) {
+          console.error('Error fetching apartments:', apartmentsError);
+          throw new Error(`Failed to fetch apartments: ${apartmentsError.message}`);
+        }
 
-    // Combine the data
-    const enrichedIssues = issues.map(issue => ({
-      ...issue,
-      apartment: apartmentMap.get(issue.apartment_id),
-      worker: issue.worker_id ? workerMap.get(issue.worker_id) : null
-    }));
+        // Get workers separately
+        const { data: workers, error: workersError } = await supabase
+          .from('workers')
+          .select('id, name, email, phone');
 
-    // Group issues by phone number
-    const phoneGroups = new Map<string, PhoneIssue[]>();
-    
-    enrichedIssues.forEach((issue: any) => {
-      if (issue.phone_number) {
-        const existing = phoneGroups.get(issue.phone_number) || [];
-        phoneGroups.set(issue.phone_number, [...existing, issue]);
-      }
-    });
+        if (workersError) {
+          console.error('Error fetching workers:', workersError);
+          throw new Error(`Failed to fetch workers: ${workersError.message}`);
+        }
 
-    // Create summary for each phone number
-    const summaries: PhoneIssueSummary[] = [];
-    
-    phoneGroups.forEach((phoneIssues, phoneNumber) => {
-      const totalIssues = phoneIssues.length;
-      const openIssues = phoneIssues.filter(i => i.status === 'open').length;
-      const receivedIssues = phoneIssues.filter(i => i.status === 'хүлээж авсан').length;
-      const completedIssues = phoneIssues.filter(i => i.status === 'болсон').length;
-      const needsHelpIssues = phoneIssues.filter(i => i.status === 'тусламж хэрэгтэй').length;
-      
-      // Since we're filtering out smoke detectors, these should be 0
-      const smokeDetectorIssues = 0;
-      const domophoneIssues = phoneIssues.filter(i => i.issue_type === 'domophone').length;
-      const lightBulbIssues = phoneIssues.filter(i => i.issue_type === 'light_bulb').length;
-      
-      const smokeDetectorResolved = 0; // No smoke detectors to resolve
+        // Create lookup maps
+        const apartmentMap = new Map(apartments?.map(apt => [apt.id, apt]) || []);
+        const workerMap = new Map(workers?.map(worker => [worker.id, worker]) || []);
 
-      // Count resolved issues by worker
-      const workerCounts = new Map<string, number>();
-      phoneIssues
-        .filter(i => i.status === 'болсон' && i.worker?.name)
-        .forEach(i => {
-          const workerName = i.worker!.name;
-          workerCounts.set(workerName, (workerCounts.get(workerName) || 0) + 1);
+        // Combine the data
+        const enrichedIssues = phoneIssues.map(issue => ({
+          ...issue,
+          apartment: apartmentMap.get(issue.apartment_id),
+          worker: issue.worker_id ? workerMap.get(issue.worker_id) : null
+        }));
+
+        // Group issues by phone number
+        const phoneGroups = new Map<string, PhoneIssue[]>();
+        
+        enrichedIssues.forEach((issue: any) => {
+          if (issue.phone_number) {
+            const existing = phoneGroups.get(issue.phone_number) || [];
+            phoneGroups.set(issue.phone_number, [...existing, issue]);
+          }
         });
 
-      const resolvedByWorkers = Array.from(workerCounts.entries()).map(([worker_name, count]) => ({
-        worker_name,
-        count
-      }));
+        // Create summary for each phone number
+        const summaries: PhoneIssueSummary[] = [];
+        
+        phoneGroups.forEach((phoneIssues, phoneNumber) => {
+          const totalIssues = phoneIssues.length;
+          const openIssues = phoneIssues.filter(i => i.status === 'open').length;
+          const receivedIssues = phoneIssues.filter(i => i.status === 'хүлээж авсан').length;
+          const completedIssues = phoneIssues.filter(i => i.status === 'болсон').length;
+          const needsHelpIssues = phoneIssues.filter(i => i.status === 'тусламж хэрэгтэй').length;
+          
+          // Since we're filtering out smoke detectors, these should be 0
+          const smokeDetectorIssues = 0;
+          const domophoneIssues = phoneIssues.filter(i => i.issue_type === 'domophone').length;
+          const lightBulbIssues = phoneIssues.filter(i => i.issue_type === 'light_bulb').length;
+          
+          const smokeDetectorResolved = 0; // No smoke detectors to resolve
 
-      summaries.push({
-        phone_number: phoneNumber,
-        total_issues: totalIssues,
-        open_issues: openIssues,
-        received_issues: receivedIssues,
-        completed_issues: completedIssues,
-        needs_help_issues: needsHelpIssues,
-        smoke_detector_issues: smokeDetectorIssues,
-        domophone_issues: domophoneIssues,
-        light_bulb_issues: lightBulbIssues,
-        smoke_detector_resolved: smokeDetectorResolved,
-        resolved_by_workers: resolvedByWorkers,
-        latest_issue: phoneIssues[0] // Most recent issue
-      });
-    });
+          // Count resolved issues by worker
+          const workerCounts = new Map<string, number>();
+          phoneIssues
+            .filter(i => i.status === 'болсон' && i.worker?.name)
+            .forEach(i => {
+              const workerName = i.worker!.name;
+              workerCounts.set(workerName, (workerCounts.get(workerName) || 0) + 1);
+            });
 
-    return summaries.sort((a, b) => b.total_issues - a.total_issues);
-  } catch (err) {
-    console.error('Unexpected error in getPhoneIssuesSummary:', err);
-    throw new Error(`Failed to fetch phone issues summary: ${err instanceof Error ? err.message : 'Unknown error'}`);
-  }
+          const resolvedByWorkers = Array.from(workerCounts.entries()).map(([worker_name, count]) => ({
+            worker_name,
+            count
+          }));
+
+          summaries.push({
+            phone_number: phoneNumber,
+            total_issues: totalIssues,
+            open_issues: openIssues,
+            received_issues: receivedIssues,
+            completed_issues: completedIssues,
+            needs_help_issues: needsHelpIssues,
+            smoke_detector_issues: smokeDetectorIssues,
+            domophone_issues: domophoneIssues,
+            light_bulb_issues: lightBulbIssues,
+            smoke_detector_resolved: smokeDetectorResolved,
+            resolved_by_workers: resolvedByWorkers,
+            latest_issue: phoneIssues[0] // Most recent issue
+          });
+        });
+
+        return summaries.sort((a, b) => b.total_issues - a.total_issues);
+    } catch (error) {
+        console.error('Error in getPhoneIssuesSummary:', error);
+        throw error;
+    }
 }
 
 export async function getPhoneIssue(id: string) {
