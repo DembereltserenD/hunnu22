@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquarePlus, Send, ArrowLeft, CheckCircle2, Clock, Package } from "lucide-react";
+import { MessageSquare, Send, ArrowLeft, CheckCircle2, Clock, Package } from "lucide-react";
 import Link from "next/link";
 import { createClient } from '../../../supabase/client';
 import { useToast } from "@/components/ui/use-toast";
@@ -47,14 +47,14 @@ export default function WorkerRequestsPage() {
     try {
       const supabase = createClient();
       const worker = localStorage.getItem('selectedWorker');
-      
+
       if (!worker) {
         setLoading(false);
         return;
       }
 
       const workerData = JSON.parse(worker);
-      
+
       const { data, error } = await supabase
         .from('worker_requests')
         .select('*')
@@ -169,7 +169,7 @@ export default function WorkerRequestsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <DashboardNavbar />
-      
+
       <div className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-6xl">
         <div className="mb-6">
           <Button variant="outline" size="sm" asChild className="mb-4">
@@ -191,7 +191,7 @@ export default function WorkerRequestsPage() {
           <Card className="bg-white dark:bg-slate-900 border-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <MessageSquarePlus className="h-5 w-5 text-blue-600" />
+                <MessageSquare className="h-5 w-5 text-blue-600" />
                 Шинэ хүсэлт үүсгэх
               </CardTitle>
               <CardDescription>

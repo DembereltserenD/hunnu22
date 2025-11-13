@@ -168,6 +168,9 @@ declare module 'lucide-react' {
   export const BarChart: LucideIcon;
   export const LineChart: LucideIcon;
   export const PieChart: LucideIcon;
+  export const MessageSquare: LucideIcon;
+  export const Send: LucideIcon;
+  export const Package: LucideIcon;
   export const Activity: LucideIcon;
   export const Pulse: LucideIcon;
   export const Thermometer: LucideIcon;

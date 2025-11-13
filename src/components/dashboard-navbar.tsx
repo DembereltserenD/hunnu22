@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
-import { Menu, UserCircle, MessageSquarePlus, Activity } from "lucide-react";
+import { Menu, UserCircle, MessageSquare, Activity } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import Image from "next/image";
@@ -50,7 +50,7 @@ export default function DashboardNavbar() {
           </Link>
           <Link href="/worker-requests">
             <Button variant="outline" size="sm" className="gap-2">
-              <MessageSquarePlus className="h-4 w-4" />
+              <MessageSquare className="h-4 w-4" />
               Хүсэлт илгээх
             </Button>
           </Link>
@@ -95,7 +95,7 @@ export default function DashboardNavbar() {
                 </Link>
                 <Link href="/worker-requests" onClick={() => setOpen(false)}>
                   <Button variant="outline" className="w-full justify-start text-base h-12 gap-2">
-                    <MessageSquarePlus className="h-5 w-5" />
+                    <MessageSquare className="h-5 w-5" />
                     Хүсэлт илгээх
                   </Button>
                 </Link>
