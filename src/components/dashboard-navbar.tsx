@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import UserProfile from "@/components/user-profile";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
 import { Menu, UserCircle, MessageSquare, Activity } from "lucide-react";
 import Link from "next/link";
@@ -64,11 +65,13 @@ export default function DashboardNavbar() {
               Ажилчин солих
             </Button>
           </Link>
+          <UserProfile />
         </div>
 
         {/* Mobile Navigation */}
         <div className="flex md:hidden gap-2 items-center">
           <ThemeSwitcher />
+          <UserProfile />
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">

@@ -7,8 +7,10 @@ import Link from "next/link";
 import DashboardNavbar from "@/components/dashboard-navbar";
 import { createClient } from '../../../supabase/client';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
+    const router = useRouter();
     const [data, setData] = useState<{
         buildings: any[];
         apartments: any[];
@@ -19,30 +21,29 @@ export default function DashboardPage() {
         phoneIssues: []
     });
     const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState<any>(null);
 
     useEffect(() => {
-        async function loadData() {
+        async function checkAuthAndLoadData() {
             try {
                 const supabase = createClient();
+                
+                // Check authentication
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+                
+                if (authError || !user) {
+                    router.push('/sign-in');
+                    return;
+                }
+                
+                setUser(user);
 
+                // Load dashboard data
                 const [buildingsRes, apartmentsRes, phoneIssuesRes] = await Promise.all([
                     supabase.from('buildings').select('*'),
                     supabase.from('apartments').select('*'),
                     supabase.from('phone_issues').select('*')
                 ]);
-
-                const buildingStats = buildingsRes.data?.map(building => {
-                    const apartmentCount = apartmentsRes.data?.filter(apt => apt.building_id === building.id).length || 0;
-                    return { id: building.id, name: building.name, apartmentCount };
-                });
-
-                console.log('Dashboard Data Loaded:', {
-                    buildings: buildingsRes.data?.length || 0,
-                    apartments: apartmentsRes.data?.length || 0,
-                    phoneIssues: phoneIssuesRes.data?.length || 0,
-                    buildingStats,
-                    duplicateBuilding222: buildingStats?.filter(b => b.name === '222')
-                });
 
                 setData({
                     buildings: buildingsRes.data || [],
@@ -56,8 +57,8 @@ export default function DashboardPage() {
             }
         }
 
-        loadData();
-    }, []);
+        checkAuthAndLoadData();
+    }, [router]);
 
     if (loading) {
         return (

@@ -7,16 +7,17 @@ import { Label } from "@/components/ui/label";
 import Link from "next/link";
 
 interface LoginProps {
-  searchParams: Promise<Message>;
+  searchParams: Promise<Message & { redirect?: string }>;
 }
 
 export default async function SignInPage({ searchParams }: LoginProps) {
-  const message = await searchParams;
+  const params = await searchParams;
+  const redirectPath = params.redirect;
 
-  if ("message" in message) {
+  if ("message" in params) {
     return (
       <div className="flex h-screen w-full flex-1 items-center justify-center p-4 sm:max-w-md">
-        <FormMessage message={message} />
+        <FormMessage message={params} />
       </div>
     );
   }
@@ -78,6 +79,10 @@ export default async function SignInPage({ searchParams }: LoginProps) {
               </div>
             </div>
 
+            {redirectPath && (
+              <input type="hidden" name="redirect" value={redirectPath} />
+            )}
+
             <SubmitButton
               className="w-full"
               pendingText="Signing in..."
@@ -86,7 +91,7 @@ export default async function SignInPage({ searchParams }: LoginProps) {
               Sign in
             </SubmitButton>
 
-            <FormMessage message={message} />
+            <FormMessage message={params} />
           </form>
         </div>
       </div>
