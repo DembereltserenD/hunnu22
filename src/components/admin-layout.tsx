@@ -6,13 +6,14 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import Image from "next/image";
 import {
     Users,
     Building,
     Home,
     Phone,
     Menu,
-    Zap
+    MessageSquare
 } from "lucide-react";
 
 interface NavItem {
@@ -42,6 +43,11 @@ const navItems: NavItem[] = [
         href: "/admin-hunnu/phone-issues",
         icon: Phone,
     },
+    {
+        label: "Ажилчдын хүсэлт",
+        href: "/admin-hunnu/worker-requests",
+        icon: MessageSquare,
+    },
 ];
 
 const uniqueNavItems = navItems.filter((item, index, self) =>
@@ -62,9 +68,13 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 {/* Logo and Brand */}
                 <div className="p-6 border-b border-gray-200 dark:border-slate-700">
                     <Link href="/admin-hunnu" className="flex items-center gap-3 group">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-600 dark:bg-blue-500 group-hover:bg-blue-700 dark:group-hover:bg-blue-600 transition-colors">
-                            <Zap className="h-6 w-6 text-white" />
-                        </div>
+                        <Image
+                            src="/573289657_1631257461636918_3556630650382290902_n.jpg"
+                            alt="Digital Power Logo"
+                            width={40}
+                            height={40}
+                            className="rounded-md"
+                        />
                         <div>
                             <h2 className="text-lg font-bold text-gray-900 dark:text-white">Digital Power</h2>
                             <p className="text-xs text-gray-500 dark:text-gray-400">Админ самбар</p>
