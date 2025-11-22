@@ -50,7 +50,16 @@ export const apartmentSchema = z.object({
     .refine((val) => {
       // Unit number should contain at least one digit
       return /\d/.test(val);
-    }, 'Unit number must contain at least one digit')
+    }, 'Unit number must contain at least one digit'),
+  smoke_detector_count: z.number()
+    .int('Smoke detector count must be a whole number')
+    .min(0, 'Smoke detector count cannot be negative')
+    .max(20, 'Smoke detector count cannot exceed 20')
+    .optional(),
+  smoke_detector_loops: z.array(z.string())
+    .optional(),
+  smoke_detector_addresses: z.array(z.string())
+    .optional()
 });
 
 // Search parameters validation

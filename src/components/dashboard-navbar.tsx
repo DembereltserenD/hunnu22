@@ -21,7 +21,7 @@ export default function DashboardNavbar() {
   }, []);
 
   return (
-    <nav className="w-full border-b bg-[rgba(245,244,247,1)] dark:bg-background/95 backdrop-blur supports-[backdrop-filter]:dark:bg-background/60 py-3 md:py-2 transition-colors sticky top-0 z-50">
+    <nav className="w-full border-b bg-white/80 backdrop-blur-md py-3 md:py-2 transition-colors sticky top-0 z-50 border-white/20 shadow-sm">
       <div className="container mx-auto px-4 flex justify-between items-center">
         <Link href="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <Image
@@ -29,9 +29,9 @@ export default function DashboardNavbar() {
             alt="Digital Power Logo"
             width={40}
             height={40}
-            className="rounded-md"
+            className="rounded-lg shadow-sm"
           />
-          <span className="text-lg md:text-xl font-bold text-primary">Digital Power</span>
+          <span className="text-lg md:text-xl font-bold text-gray-900 font-['Clash_Display']">Digital Power</span>
         </Link>
 
         {/* Desktop Navigation */}

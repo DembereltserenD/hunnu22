@@ -12,7 +12,7 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
 
   return (
-    <nav className="w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-3 md:py-2 transition-colors sticky top-0 z-50">
+    <nav className="w-full border-b bg-white/80 backdrop-blur-md py-3 md:py-2 transition-colors sticky top-0 z-50 border-white/20 shadow-sm">
       <div className="container mx-auto px-4 flex justify-between items-center">
         <Link href="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <Image 
@@ -20,16 +20,16 @@ export default function Navbar() {
             alt="Digital Power Logo" 
             width={40} 
             height={40}
-            className="rounded-md"
+            className="rounded-lg shadow-sm"
           />
-          <span className="text-lg md:text-xl font-bold text-primary">Digital Power</span>
+          <span className="text-lg md:text-xl font-bold text-gray-900 font-['Clash_Display']">Digital Power</span>
         </Link>
         
         {/* Desktop Navigation */}
         <div className="hidden md:flex gap-2 items-center">
           <ThemeSwitcher />
           <Link href="/worker-select">
-            <Button>Get Started</Button>
+            <Button className="bg-gradient-to-r from-purple-500 to-orange-400 hover:brightness-110 text-white border-0">Эхлэх</Button>
           </Link>
         </div>
 
@@ -40,17 +40,17 @@ export default function Navbar() {
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden">
                 <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle menu</span>
+                <span className="sr-only">Цэс</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[280px] sm:w-[350px]">
               <SheetHeader>
-                <SheetTitle>Menu</SheetTitle>
+                <SheetTitle>Цэс</SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-4 mt-8">
                 <Link href="/worker-select" onClick={() => setOpen(false)}>
-                  <Button className="w-full justify-start text-base h-12">
-                    Get Started
+                  <Button className="w-full justify-start text-base h-12 bg-gradient-to-r from-purple-500 to-orange-400 text-white hover:brightness-110">
+                    Эхлэх
                   </Button>
                 </Link>
               </div>

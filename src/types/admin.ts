@@ -24,6 +24,9 @@ export interface Apartment {
   building_id: string;
   unit_number: string;
   floor: number;
+  smoke_detector_count?: number;
+  smoke_detector_loops?: string[];
+  smoke_detector_addresses?: string[];
   created_at: string;
   updated_at: string;
   building?: Building;
@@ -54,6 +57,9 @@ export interface BuildingFormData {
 export interface ApartmentFormData {
   building_id: string;
   unit_number: string;
+  smoke_detector_count?: number;
+  smoke_detector_loops?: string[];
+  smoke_detector_addresses?: string[];
   // Note: floor is auto-calculated from unit_number via database trigger
 }
 

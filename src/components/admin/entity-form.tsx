@@ -273,4 +273,16 @@ export const createApartmentFormFields = (
             placeholder: "Байрны дугаар оруулах (жишээ: 101, 2A)",
             required: true,
         }),
+        createFormField("smoke_detector_count", "Утаа мэдрэгчийн тоо", "number", {
+            placeholder: "Утаа мэдрэгчийн тоо (жишээ: 3)",
+            required: false,
+        }),
+        createFormField("smoke_detector_loops", "Утаа мэдрэгчийн Loop дугаарууд", "text", {
+            placeholder: "Loop дугаарууд таслалаар тусгаарлах (жишээ: 4,4,4)",
+            required: false,
+        }),
+        createFormField("smoke_detector_addresses", "Утаа мэдрэгчийн Address дугаарууд", "text", {
+            placeholder: "Address дугаарууд таслалаар тусгаарлах (жишээ: 25,26,27)",
+            required: false,
+        }),
     ];

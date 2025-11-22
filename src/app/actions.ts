@@ -73,7 +73,7 @@ export const signInAction = async (formData: FormData) => {
   const supabase = await createClient();
 
   if (!email || !password) {
-    return encodedRedirect("error", "/sign-in", "Email and password are required");
+    return encodedRedirect("error", "/sign-in", "Имэйл болон нууц үг шаардлагатай");
   }
 
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -82,7 +82,16 @@ export const signInAction = async (formData: FormData) => {
   });
 
   if (error) {
-    return encodedRedirect("error", "/sign-in", error.message);
+    // Translate common error messages to Mongolian
+    let errorMessage = error.message;
+    if (error.message.includes("Invalid login credentials")) {
+      errorMessage = "Имэйл эсвэл нууц үг буруу байна";
+    } else if (error.message.includes("Email not confirmed")) {
+      errorMessage = "Имэйл хаягаа баталгаажуулна уу";
+    } else if (error.message.includes("Too many requests")) {
+      errorMessage = "Хэт олон оролдлого хийсэн байна. Түр хүлээнэ үү";
+    }
+    return encodedRedirect("error", "/sign-in", errorMessage);
   }
 
   // Successful sign in - redirect to intended page or dashboard
@@ -90,7 +99,7 @@ export const signInAction = async (formData: FormData) => {
     return redirect(redirectTo || "/dashboard");
   }
 
-  return encodedRedirect("error", "/sign-in", "Failed to create session");
+  return encodedRedirect("error", "/sign-in", "Нэвтрэх үед алдаа гарлаа");
 };
 
 export const forgotPasswordAction = async (formData: FormData) => {
