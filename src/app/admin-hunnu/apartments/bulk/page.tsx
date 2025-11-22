@@ -15,16 +15,16 @@ export default async function BulkImportApartmentsPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-3xl font-bold">Bulk Import Apartment Data</h1>
+                <h1 className="text-3xl font-bold">Байрны өгөгдөл импортлох</h1>
                 <p className="text-muted-foreground mt-2">
-                    Import apartment maintenance data using codes like: 222-106-2SD 99090909 or 222-901-3SD
+                    Байрны засвар үйлчилгээний өгөгдлийг кодоор оруулах: 222-106-2SD 99090909 L1-112,L1-132 эсвэл 222-901-3SD
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                    This will record how many smoke detectors, domophones, or light bulbs were cleaned in each apartment. Buildings must already exist.
+                    Энэ нь байр бүрт хэдэн утаа мэдрэгч, домофон, эсвэл чийдэн цэвэрлэсэн тухай бичлэг үүсгэнэ. Барилгууд урьдчилан үүссэн байх ёстой.
                 </p>
             </div>
 
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<div>Ачааллаж байна...</div>}>
                 <BulkPhoneIssueForm apartments={apartments} workers={workers} buildings={buildings} />
             </Suspense>
         </div>

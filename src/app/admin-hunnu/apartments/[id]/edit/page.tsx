@@ -69,6 +69,17 @@ export default function EditApartmentPage() {
             formData.append("building_id", data.building_id);
             formData.append("unit_number", data.unit_number);
 
+            // Include smoke detector fields if present
+            if (data.smoke_detector_count !== undefined && data.smoke_detector_count !== '') {
+                formData.append("smoke_detector_count", data.smoke_detector_count.toString());
+            }
+            if (data.smoke_detector_loops) {
+                formData.append("smoke_detector_loops", data.smoke_detector_loops);
+            }
+            if (data.smoke_detector_addresses) {
+                formData.append("smoke_detector_addresses", data.smoke_detector_addresses);
+            }
+
             const result = await submitApartmentForm(null, formData);
 
             if (result.success) {
@@ -102,63 +113,34 @@ export default function EditApartmentPage() {
 
     if (loading) {
         return (
-            
-                <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                    <span className="ml-2">Loading apartment...</span>
-                </div>
-            
+
+            <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+                <span className="ml-2">Loading apartment...</span>
+            </div>
+
         );
     }
 
     if (!apartment) {
         return (
-            
-                <div className="text-center py-8">
-                    <p className="text-muted-foreground">Apartment not found</p>
-                    <Button
-                        onClick={() => router.push("/admin-hunnu/apartments")}
-                        className="mt-4"
-                    >
-                        Back to Apartments
-                    </Button>
-                </div>
-            
+
+            <div className="text-center py-8">
+                <p className="text-muted-foreground">Apartment not found</p>
+                <Button
+                    onClick={() => router.push("/admin-hunnu/apartments")}
+                    className="mt-4"
+                >
+                    Back to Apartments
+                </Button>
+            </div>
+
         );
     }
 
     if (buildings.length === 0) {
         return (
-            
-                <div className="space-y-6">
-                    <div className="flex items-center gap-4">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => router.push("/admin-hunnu/apartments")}
-                            className="flex items-center gap-2"
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                            Back to Apartments
-                        </Button>
-                    </div>
 
-                    <div className="text-center py-8">
-                        <h2 className="text-2xl font-bold mb-4">No Buildings Available</h2>
-                        <p className="text-muted-foreground mb-6">
-                            You need to have at least one building to edit apartments.
-                        </p>
-                        <Button onClick={() => router.push("/admin-hunnu/buildings/new")}>
-                            Create Building
-                        </Button>
-                    </div>
-                </div>
-            
-        );
-    }
-
-    return (
-        
             <div className="space-y-6">
                 <div className="flex items-center gap-4">
                     <Button
@@ -172,32 +154,75 @@ export default function EditApartmentPage() {
                     </Button>
                 </div>
 
-                <EntityForm
-                    title={`Edit Apartment: ${apartment.unit_number}`}
-                    fields={createApartmentFormFields(buildings)}
-                    schema={apartmentSchema}
-                    defaultValues={{
-                        building_id: apartment.building_id,
-                        unit_number: apartment.unit_number,
-                    }}
-                    onSubmit={handleSubmit}
-                    onCancel={handleCancel}
-                    loading={submitting}
-                    submitLabel="Update Apartment"
-                />
-
-                <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-                    <h3 className="font-medium mb-2">Current Apartment Details</h3>
-                    <div className="text-sm text-muted-foreground space-y-1">
-                        <p><strong>Current Floor:</strong> {apartment.floor}</p>
-                        <p><strong>Current Building:</strong> {(apartment as any).building?.name || 'Unknown'}</p>
-                        <p className="mt-2">
-                            <strong>Note:</strong> The floor number will be automatically recalculated
-                            from the unit number when you save changes.
-                        </p>
-                    </div>
+                <div className="text-center py-8">
+                    <h2 className="text-2xl font-bold mb-4">No Buildings Available</h2>
+                    <p className="text-muted-foreground mb-6">
+                        You need to have at least one building to edit apartments.
+                    </p>
+                    <Button onClick={() => router.push("/admin-hunnu/buildings/new")}>
+                        Create Building
+                    </Button>
                 </div>
             </div>
-        
+
+        );
+    }
+
+    return (
+
+        <div className="space-y-6">
+            <div className="flex items-center gap-4">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => router.push("/admin-hunnu/apartments")}
+                    className="flex items-center gap-2"
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to Apartments
+                </Button>
+            </div>
+
+            <EntityForm
+                title={`Edit Apartment: ${apartment.unit_number}`}
+                fields={createApartmentFormFields(buildings)}
+                schema={apartmentSchema}
+                defaultValues={{
+                    building_id: apartment.building_id,
+                    unit_number: apartment.unit_number,
+                    smoke_detector_count: apartment.smoke_detector_count || 0,
+                    smoke_detector_loops: apartment.smoke_detector_loops?.join(',') || '',
+                    smoke_detector_addresses: apartment.smoke_detector_addresses?.join(',') || '',
+                }}
+                onSubmit={handleSubmit}
+                onCancel={handleCancel}
+                loading={submitting}
+                submitLabel="Update Apartment"
+            />
+
+            <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+                <h3 className="font-medium mb-2">Current Apartment Details</h3>
+                <div className="text-sm text-muted-foreground space-y-1">
+                    <p><strong>Current Floor:</strong> {apartment.floor}</p>
+                    <p><strong>Current Building:</strong> {(apartment as any).building?.name || 'Unknown'}</p>
+                    {apartment.smoke_detector_count && apartment.smoke_detector_count > 0 && (
+                        <>
+                            <p><strong>Smoke Detectors:</strong> {apartment.smoke_detector_count}</p>
+                            {apartment.smoke_detector_loops && apartment.smoke_detector_loops.length > 0 && (
+                                <p><strong>Loops:</strong> {apartment.smoke_detector_loops.join(', ')}</p>
+                            )}
+                            {apartment.smoke_detector_addresses && apartment.smoke_detector_addresses.length > 0 && (
+                                <p><strong>Addresses:</strong> {apartment.smoke_detector_addresses.join(', ')}</p>
+                            )}
+                        </>
+                    )}
+                    <p className="mt-2">
+                        <strong>Note:</strong> The floor number will be automatically recalculated
+                        from the unit number when you save changes.
+                    </p>
+                </div>
+            </div>
+        </div>
+
     );
 }

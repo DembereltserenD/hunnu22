@@ -48,6 +48,25 @@ const apartmentColumns: ColumnDef<Apartment>[] = [
         ),
     },
     {
+        key: "smoke_detector_count",
+        header: "Smoke Detectors",
+        render: (value, row) => {
+            if (!value || value === 0) return "—";
+            return (
+                <div className="flex flex-col gap-1">
+                    <Badge variant="outline" className="w-fit">
+                        🔥 {value} SD
+                    </Badge>
+                    {row.smoke_detector_addresses && row.smoke_detector_addresses.length > 0 && (
+                        <span className="text-xs text-purple-600">
+                            {row.smoke_detector_addresses.join(', ')}
+                        </span>
+                    )}
+                </div>
+            );
+        },
+    },
+    {
         key: "building",
         header: "Address",
         render: (value: any) => value?.address || "—",
@@ -363,38 +382,57 @@ function ApartmentsPageContent() {
                                             {floorGroup.apartments.map((apartment) => (
                                                 <div
                                                     key={apartment.id}
-                                                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                                                    className="flex flex-col p-3 border rounded-lg hover:bg-muted/50 transition-colors"
                                                 >
-                                                    <div className="flex items-center gap-2">
-                                                        <Home className="h-4 w-4 text-muted-foreground" />
-                                                        <Badge variant="outline" className="font-mono">
-                                                            {apartment.unit_number}
-                                                        </Badge>
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <Home className="h-4 w-4 text-muted-foreground" />
+                                                            <Badge variant="outline" className="font-mono">
+                                                                {apartment.unit_number}
+                                                            </Badge>
+                                                        </div>
+                                                        <div className="flex gap-1">
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleEdit(apartment);
+                                                                }}
+                                                                className="h-8 px-2 text-xs"
+                                                            >
+                                                                Edit
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleDelete(apartment);
+                                                                }}
+                                                                className="h-8 px-2 text-xs text-destructive hover:text-destructive"
+                                                            >
+                                                                Delete
+                                                            </Button>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex gap-1">
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleEdit(apartment);
-                                                            }}
-                                                            className="h-8 px-2 text-xs"
-                                                        >
-                                                            Edit
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleDelete(apartment);
-                                                            }}
-                                                            className="h-8 px-2 text-xs text-destructive hover:text-destructive"
-                                                        >
-                                                            Delete
-                                                        </Button>
-                                                    </div>
+                                                    {apartment.smoke_detector_count && apartment.smoke_detector_count > 0 && (
+                                                        <div className="text-xs text-muted-foreground space-y-1 mt-1 pl-6">
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="font-medium">🔥 {apartment.smoke_detector_count} SD</span>
+                                                                {apartment.smoke_detector_loops && apartment.smoke_detector_loops.length > 0 && (
+                                                                    <span className="text-purple-600">
+                                                                        [{apartment.smoke_detector_loops.join(', ')}]
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            {apartment.smoke_detector_addresses && apartment.smoke_detector_addresses.length > 0 && (
+                                                                <div className="text-purple-600">
+                                                                    📍 {apartment.smoke_detector_addresses.join(', ')}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>

@@ -37,9 +37,9 @@ async function NewPhoneIssueForm() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Create New Phone Issue</CardTitle>
+                <CardTitle>Шинэ утасны бичлэг үүсгэх</CardTitle>
                 <CardDescription>
-                    Add a new phone issue record to track maintenance requests
+                    Засвар үйлчилгээний хүсэлтийг хянахын тулд шинэ утасны бичлэг нэмэх
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -56,13 +56,13 @@ export default function NewPhoneIssuePage() {
                 <Button variant="outline" size="sm" asChild>
                     <Link href="/admin-hunnu/phone-issues">
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        Back to Phone Issues
+                        Утасны бичлэг рүү буцах
                     </Link>
                 </Button>
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">New Phone Issue</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Шинэ утасны бичлэг</h1>
                     <p className="text-muted-foreground">
-                        Create a new phone issue record for tracking and resolution
+                        Хянах болон шийдвэрлэхийн тулд шинэ утасны бичлэг үүсгэх
                     </p>
                 </div>
             </div>

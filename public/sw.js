@@ -1,11 +1,11 @@
-const CACHE_NAME = 'maintenance-tracker-v1';
-const RUNTIME_CACHE = 'runtime-cache-v1';
-const API_CACHE = 'api-cache-v1';
+const CACHE_NAME = 'maintenance-tracker-v2';
+const RUNTIME_CACHE = 'runtime-cache-v2';
+const API_CACHE = 'api-cache-v2';
 
 const STATIC_ASSETS = [
   '/',
-  '/worker-select',
   '/dashboard',
+  '/sign-in',
   '/manifest.json',
   '/offline.html'
 ];
@@ -44,7 +44,9 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - network first, fallback to cache
 self.addEventListener('fetch', (event) => {
-  const { request } = event;
+  const {
+    request
+  } = event;
   const url = new URL(request.url);
 
   // Skip chrome extensions and non-http requests
@@ -56,31 +58,31 @@ self.addEventListener('fetch', (event) => {
   if (url.hostname.includes('supabase.co')) {
     event.respondWith(
       fetch(request)
-        .then((response) => {
-          // Clone the response before caching
-          const responseToCache = response.clone();
-          
-          // Only cache successful GET requests
-          if (request.method === 'GET' && response.status === 200) {
-            caches.open(API_CACHE).then((cache) => {
-              cache.put(request, responseToCache);
-            });
-          }
-          
-          return response;
-        })
-        .catch(() => {
-          // If network fails, try to return cached response
-          return caches.match(request).then((cachedResponse) => {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
-            // Return offline page for navigation requests
-            if (request.mode === 'navigate') {
-              return caches.match('/offline.html');
-            }
+      .then((response) => {
+        // Clone the response before caching
+        const responseToCache = response.clone();
+
+        // Only cache successful GET requests
+        if (request.method === 'GET' && response.status === 200) {
+          caches.open(API_CACHE).then((cache) => {
+            cache.put(request, responseToCache);
           });
-        })
+        }
+
+        return response;
+      })
+      .catch(() => {
+        // If network fails, try to return cached response
+        return caches.match(request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          // Return offline page for navigation requests
+          if (request.mode === 'navigate') {
+            return caches.match('/offline.html');
+          }
+        });
+      })
     );
     return;
   }
@@ -133,7 +135,7 @@ self.addEventListener('fetch', (event) => {
 // Background sync for pending data
 self.addEventListener('sync', (event) => {
   console.log('Background sync triggered:', event.tag);
-  
+
   if (event.tag === 'sync-pending-data') {
     event.waitUntil(
       // Notify all clients to sync their pending data
@@ -153,7 +155,7 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
-  
+
   if (event.data && event.data.type === 'CLEAR_CACHE') {
     event.waitUntil(
       caches.keys().then((cacheNames) => {

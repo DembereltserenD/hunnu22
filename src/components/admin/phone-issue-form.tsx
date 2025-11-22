@@ -200,22 +200,22 @@ export function PhoneIssueForm({ phoneIssue, apartments, workers, buildings }: P
             if (phoneIssue) {
                 await updatePhoneIssue(phoneIssue.id, formData);
                 toast({
-                    title: 'Success',
-                    description: 'Phone issue updated successfully'
+                    title: 'Амжилттай',
+                    description: 'Утасны бичлэг амжилттай шинэчлэгдлээ'
                 });
             } else {
                 // Ensure new issues start with 'open' status
                 const newIssueData = { ...formData, status: 'open' as const };
                 await createPhoneIssue(newIssueData);
                 toast({
-                    title: 'Success',
-                    description: 'Phone call record created successfully'
+                    title: 'Амжилттай',
+                    description: 'Утасны бичлэг амжилттай үүслээ'
                 });
             }
         } catch (error) {
             toast({
-                title: 'Error',
-                description: error instanceof Error ? error.message : 'Something went wrong',
+                title: 'Алдаа',
+                description: error instanceof Error ? error.message : 'Алдаа гарлаа',
                 variant: 'destructive'
             });
         } finally {
@@ -231,18 +231,18 @@ export function PhoneIssueForm({ phoneIssue, apartments, workers, buildings }: P
         <form onSubmit={handleSubmit} className="space-y-6">
             <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-md">
                 <div className="text-sm text-gray-700">
-                    <strong>Apartment Selection:</strong> First select a building, then choose the specific apartment. Use the search boxes to quickly find buildings or apartments.
+                    <strong>Байр сонгох:</strong> Эхлээд барилга сонгоод, дараа нь тодорхой байр сонгоно уу. Барилга эсвэл байрыг хурдан олохын тулд хайлтын нүдийг ашиглана уу.
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                    <Label htmlFor="building_id">Building *</Label>
+                    <Label htmlFor="building_id">Барилга *</Label>
                     <div className="space-y-2">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                             <Input
-                                placeholder="Search buildings..."
+                                placeholder="Барилга хайх..."
                                 value={buildingSearchTerm}
                                 onChange={(e) => setBuildingSearchTerm(e.target.value)}
                                 className="pl-10 pr-10"
@@ -263,17 +263,17 @@ export function PhoneIssueForm({ phoneIssue, apartments, workers, buildings }: P
                             required
                         >
                             <SelectTrigger>
-                                <SelectValue placeholder="Select building" />
+                                <SelectValue placeholder="Барилга сонгох" />
                             </SelectTrigger>
                             <SelectContent className="max-h-60">
                                 {buildingSearchTerm && (
                                     <div className="px-2 py-1 text-xs text-gray-500 border-b">
-                                        {filteredBuildings.length} building{filteredBuildings.length !== 1 ? 's' : ''} found
+                                        {filteredBuildings.length} барилга олдлоо
                                     </div>
                                 )}
                                 {filteredBuildings.length === 0 ? (
                                     <div className="px-2 py-1 text-sm text-gray-500">
-                                        {buildingSearchTerm ? 'No buildings match your search' : 'No buildings available'}
+                                        {buildingSearchTerm ? 'Хайлтад тохирох барилга байхгүй' : 'Барилга байхгүй'}
                                     </div>
                                 ) : (
                                     filteredBuildings.map((building) => (
@@ -290,18 +290,18 @@ export function PhoneIssueForm({ phoneIssue, apartments, workers, buildings }: P
                     </div>
                     {selectedBuildingId && (
                         <div className="text-sm text-gray-600">
-                            Selected building: {buildingsData.find(b => b.id === selectedBuildingId)?.name}
+                            Сонгосон барилга: {buildingsData.find(b => b.id === selectedBuildingId)?.name}
                         </div>
                     )}
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="apartment_id">Apartment *</Label>
+                    <Label htmlFor="apartment_id">Байр *</Label>
                     <div className="space-y-2">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                             <Input
-                                placeholder="Search apartments..."
+                                placeholder="Байр хайх..."
                                 value={apartmentSearchTerm}
                                 onChange={(e) => setApartmentSearchTerm(e.target.value)}
                                 className="pl-10 pr-10"
@@ -325,26 +325,26 @@ export function PhoneIssueForm({ phoneIssue, apartments, workers, buildings }: P
                             disabled={!selectedBuildingId}
                         >
                             <SelectTrigger>
-                                <SelectValue placeholder={selectedBuildingId ? "Select apartment" : "Select building first"} />
+                                <SelectValue placeholder={selectedBuildingId ? "Байр сонгох" : "Эхлээд барилга сонгоно уу"} />
                             </SelectTrigger>
                             <SelectContent className="max-h-60">
                                 {!selectedBuildingId ? (
-                                    <div className="px-2 py-1 text-sm text-gray-500">Select a building first</div>
+                                    <div className="px-2 py-1 text-sm text-gray-500">Эхлээд барилга сонгоно уу</div>
                                 ) : (
                                     <>
                                         {apartmentSearchTerm && (
                                             <div className="px-2 py-1 text-xs text-gray-500 border-b">
-                                                {availableApartments.length} apartment{availableApartments.length !== 1 ? 's' : ''} found
+                                                {availableApartments.length} байр олдлоо
                                             </div>
                                         )}
                                         {availableApartments.length === 0 ? (
                                             <div className="px-2 py-1 text-sm text-gray-500">
-                                                {apartmentSearchTerm ? 'No apartments match your search' : 'No apartments available'}
+                                                {apartmentSearchTerm ? 'Хайлтад тохирох байр байхгүй' : 'Байр байхгүй'}
                                             </div>
                                         ) : (
                                             availableApartments.map((apartment: ApartmentForSelect) => (
                                                 <SelectItem key={apartment.id} value={apartment.id}>
-                                                    Unit {cleanUnitNumber(apartment.unit_number)} - Floor {apartment.floor}
+                                                    Байр {cleanUnitNumber(apartment.unit_number)} - Давхар {apartment.floor}
                                                 </SelectItem>
                                             ))
                                         )}
@@ -355,31 +355,31 @@ export function PhoneIssueForm({ phoneIssue, apartments, workers, buildings }: P
                     </div>
                     {formData.apartment_id && (
                         <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-                            <div className="text-sm font-medium text-blue-900">Selected Apartment</div>
+                            <div className="text-sm font-medium text-blue-900">Сонгосон байр</div>
                             <div className="text-sm text-blue-700">
-                                Unit {cleanUnitNumber(availableApartments.find((a: ApartmentForSelect) => a.id === formData.apartment_id)?.unit_number || '')} - Floor {availableApartments.find((a: ApartmentForSelect) => a.id === formData.apartment_id)?.floor}
+                                Байр {cleanUnitNumber(availableApartments.find((a: ApartmentForSelect) => a.id === formData.apartment_id)?.unit_number || '')} - Давхар {availableApartments.find((a: ApartmentForSelect) => a.id === formData.apartment_id)?.floor}
                             </div>
                             <div className="text-xs text-blue-600">
-                                Building: {buildingsData.find(b => b.id === selectedBuildingId)?.name}
+                                Барилга: {buildingsData.find(b => b.id === selectedBuildingId)?.name}
                             </div>
                         </div>
                     )}
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="phone_number">Phone Number *</Label>
+                    <Label htmlFor="phone_number">Утасны дугаар *</Label>
                     <Input
                         id="phone_number"
                         type="tel"
                         value={formData.phone_number}
                         onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
-                        placeholder="+1234567890"
+                        placeholder="99123456"
                         required
                     />
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="issue_type">Issue Type *</Label>
+                    <Label htmlFor="issue_type">Асуудлын төрөл *</Label>
                     <Select
                         value={formData.issue_type}
                         onValueChange={(value: 'domophone' | 'light_bulb') =>
@@ -391,8 +391,8 @@ export function PhoneIssueForm({ phoneIssue, apartments, workers, buildings }: P
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="domophone">Domophone</SelectItem>
-                            <SelectItem value="light_bulb">Light Bulb</SelectItem>
+                            <SelectItem value="domophone">Домофон</SelectItem>
+                            <SelectItem value="light_bulb">Чийдэн</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -400,7 +400,7 @@ export function PhoneIssueForm({ phoneIssue, apartments, workers, buildings }: P
                 {/* Only show status field when editing existing phone issues */}
                 {phoneIssue && (
                     <div className="space-y-2">
-                        <Label htmlFor="status">Status *</Label>
+                        <Label htmlFor="status">Төлөв *</Label>
                         <Select
                             value={formData.status}
                             onValueChange={(value: 'open' | 'хүлээж авсан' | 'болсон' | 'тусламж хэрэгтэй') =>
@@ -422,16 +422,16 @@ export function PhoneIssueForm({ phoneIssue, apartments, workers, buildings }: P
                 )}
 
                 <div className="space-y-2">
-                    <Label htmlFor="worker_id">Assigned Worker</Label>
+                    <Label htmlFor="worker_id">Ажилтан оноох</Label>
                     <Select
                         value={formData.worker_id || "none"}
                         onValueChange={(value) => setFormData({ ...formData, worker_id: value === "none" ? "" : value })}
                     >
                         <SelectTrigger>
-                            <SelectValue placeholder="Select worker (optional)" />
+                            <SelectValue placeholder="Ажилтан сонгох (заавал биш)" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="none">Нээлттэй (any worker can assign)</SelectItem>
+                            <SelectItem value="none">Нээлттэй (ямар ч ажилтан авч болно)</SelectItem>
                             {workers.map((worker) => (
                                 <SelectItem key={worker.id} value={worker.id}>
                                     {worker.name}
@@ -444,22 +444,22 @@ export function PhoneIssueForm({ phoneIssue, apartments, workers, buildings }: P
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">Тайлбар</Label>
                 <Textarea
                     id="description"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Describe the issue in detail..."
+                    placeholder="Асуудлын дэлгэрэнгүй тайлбар..."
                     rows={4}
                 />
             </div>
 
             <div className="flex items-center gap-4">
                 <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? 'Saving...' : phoneIssue ? 'Update Phone Call Record' : 'Create Phone Call Record'}
+                    {isSubmitting ? 'Хадгалж байна...' : phoneIssue ? 'Утасны бичлэг шинэчлэх' : 'Утасны бичлэг үүсгэх'}
                 </Button>
                 <Button type="button" variant="outline" onClick={handleCancel}>
-                    Cancel
+                    Цуцлах
                 </Button>
             </div>
         </form>

@@ -169,10 +169,26 @@ export async function updateApartment(id: string, formData: FormData) {
       throw new Error('Apartment ID is required');
     }
 
-    const rawData = {
+    const rawData: any = {
       building_id: formData.get('building_id') as string,
       unit_number: formData.get('unit_number') as string,
     };
+
+    // Handle smoke detector fields
+    const smokeDetectorCount = formData.get('smoke_detector_count');
+    if (smokeDetectorCount !== null && smokeDetectorCount !== '') {
+      rawData.smoke_detector_count = parseInt(smokeDetectorCount as string);
+    }
+
+    const smokeDetectorLoops = formData.get('smoke_detector_loops') as string;
+    if (smokeDetectorLoops) {
+      rawData.smoke_detector_loops = smokeDetectorLoops.split(',').map(s => s.trim()).filter(s => s);
+    }
+
+    const smokeDetectorAddresses = formData.get('smoke_detector_addresses') as string;
+    if (smokeDetectorAddresses) {
+      rawData.smoke_detector_addresses = smokeDetectorAddresses.split(',').map(s => s.trim()).filter(s => s);
+    }
 
     const validatedData = validateApartmentData(rawData);
     if (!validatedData.success) {
