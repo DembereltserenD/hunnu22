@@ -25,15 +25,15 @@ export default async function SignInPage({ searchParams }: LoginProps) {
   return (
     <>
       <Navbar />
-      <div className="flex min-h-screen flex-col items-center justify-center px-4 py-8" style={{ background: 'linear-gradient(120deg, #d6a4ff 0%, #ffecd2 55%, #ffb07c 100%)' }}>
-        <div className="w-full max-w-md rounded-2xl border-0 bg-white/80 backdrop-blur-md p-8 shadow-2xl">
+      <div className="flex min-h-screen flex-col items-center justify-center px-4 py-8 bg-gradient-to-br from-purple-100 via-orange-50 to-pink-100 dark:from-gray-900 dark:via-purple-950 dark:to-gray-900 transition-colors duration-300">
+        <div className="w-full max-w-md rounded-2xl border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md p-8 shadow-2xl">
           <form className="flex flex-col space-y-6">
             <div className="space-y-2 text-center">
-              <h1 className="text-3xl font-normal tracking-tight font-['Clash_Display']">Нэвтрэх</h1>
-              <p className="text-sm text-gray-600">
+              <h1 className="text-3xl font-normal tracking-tight bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 bg-clip-text text-transparent font-['Clash_Display']">Нэвтрэх</h1>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Бүртгэл байхгүй юу?{" "}
                 <Link
-                  className="text-purple-600 font-semibold hover:underline transition-all"
+                  className="text-purple-600 dark:text-purple-400 font-semibold hover:underline transition-all"
                   href="/sign-up"
                 >
                   Бүртгүүлэх
@@ -43,7 +43,7 @@ export default async function SignInPage({ searchParams }: LoginProps) {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Имэйл хаяг
                 </Label>
                 <Input
@@ -53,17 +53,17 @@ export default async function SignInPage({ searchParams }: LoginProps) {
                   placeholder="example@email.com"
                   required
                   autoComplete="email"
-                  className="w-full h-11 bg-white/50 border-gray-200 focus:border-purple-500 focus:ring-purple-500"
+                  className="w-full h-11 bg-white/50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 focus:border-purple-500 focus:ring-purple-500 dark:text-gray-100 dark:placeholder:text-gray-400"
                 />
               </div>
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                  <Label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     Нууц үг
                   </Label>
                   <Link
-                    className="text-xs text-gray-500 hover:text-purple-600 hover:underline transition-all"
+                    className="text-xs text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:underline transition-all"
                     href="/forgot-password"
                   >
                     Нууц үг мартсан?
@@ -76,7 +76,7 @@ export default async function SignInPage({ searchParams }: LoginProps) {
                   placeholder="Нууц үгээ оруулна уу"
                   required
                   autoComplete="current-password"
-                  className="w-full h-11 bg-white/50 border-gray-200 focus:border-purple-500 focus:ring-purple-500"
+                  className="w-full h-11 bg-white/50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 focus:border-purple-500 focus:ring-purple-500 dark:text-gray-100 dark:placeholder:text-gray-400"
                 />
               </div>
             </div>

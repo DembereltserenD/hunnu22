@@ -53,7 +53,7 @@ export interface LoadingOverlayProps {
 
 export function LoadingOverlay({
     isLoading,
-    text = "Loading...",
+    text = "Уншиж байна...",
     className,
     children
 }: LoadingOverlayProps) {

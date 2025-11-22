@@ -24,45 +24,45 @@ export default async function ForgotPassword(props: {
   return (
     <>
       <Navbar />
-      <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-8">
-        <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-sm">
+      <div className="flex min-h-screen flex-col items-center justify-center px-4 py-8 bg-gradient-to-br from-purple-100 via-orange-50 to-pink-100 dark:from-gray-900 dark:via-purple-950 dark:to-gray-900 transition-colors duration-300">
+        <div className="w-full max-w-md rounded-2xl border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md p-8 shadow-2xl">
           <UrlProvider>
             <form className="flex flex-col space-y-6">
               <div className="space-y-2 text-center">
-                <h1 className="text-3xl font-semibold tracking-tight">Reset Password</h1>
-                <p className="text-sm text-muted-foreground">
-                  Already have an account?{" "}
+                <h1 className="text-3xl font-normal tracking-tight bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 bg-clip-text text-transparent font-['Clash_Display']">Нууц үг сэргээх</h1>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Бүртгэлтэй юу?{" "}
                   <Link
-                    className="text-primary font-medium hover:underline transition-all"
+                    className="text-purple-600 dark:text-purple-400 font-semibold hover:underline transition-all"
                     href="/sign-in"
                   >
-                    Sign in
+                    Нэвтрэх
                   </Link>
                 </p>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium">
-                    Email
+                  <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Имэйл хаяг
                   </Label>
                   <Input
                     id="email"
                     name="email"
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder="example@email.com"
                     required
-                    className="w-full"
+                    className="w-full h-11 bg-white/50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 focus:border-purple-500 focus:ring-purple-500 dark:text-gray-100 dark:placeholder:text-gray-400"
                   />
                 </div>
               </div>
 
               <SubmitButton
                 formAction={forgotPasswordAction}
-                pendingText="Sending reset link..."
-                className="w-full"
+                pendingText="Илгээж байна..."
+                className="w-full h-11 font-semibold bg-gradient-to-r from-purple-500 to-orange-400 hover:brightness-110 text-white border-0"
               >
-                Reset Password
+                Нууц үг сэргээх
               </SubmitButton>
 
               <FormMessage message={searchParams} />

@@ -8,20 +8,33 @@ import { Menu, UserCircle, MessageSquare, Activity } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { createClient } from "../../supabase/client";
 
 export default function DashboardNavbar() {
   const [open, setOpen] = useState(false);
-  const [selectedWorker, setSelectedWorker] = useState<any>(null);
+  const [userName, setUserName] = useState<string>('');
 
   useEffect(() => {
-    const worker = localStorage.getItem('selectedWorker');
-    if (worker) {
-      setSelectedWorker(JSON.parse(worker));
+    async function loadUserName() {
+      try {
+        const supabase = createClient();
+        const { data: { user }, error } = await supabase.auth.getUser();
+
+        if (user && !error) {
+          // Get full name from user metadata, fallback to email username
+          const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || '';
+          setUserName(fullName);
+        }
+      } catch (error) {
+        console.error('Error loading user:', error);
+      }
     }
+
+    loadUserName();
   }, []);
 
   return (
-    <nav className="w-full border-b bg-white/80 backdrop-blur-md py-3 md:py-2 transition-colors sticky top-0 z-50 border-white/20 shadow-sm">
+    <nav className="w-full border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-md py-3 md:py-2 transition-colors sticky top-0 z-50 border-gray-200/50 dark:border-gray-700/50 shadow-sm">
       <div className="container mx-auto px-4 flex justify-between items-center">
         <Link href="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <Image
@@ -31,38 +44,33 @@ export default function DashboardNavbar() {
             height={40}
             className="rounded-lg shadow-sm"
           />
-          <span className="text-lg md:text-xl font-bold text-gray-900 font-['Clash_Display']">Digital Power</span>
+          <span className="text-lg md:text-xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 bg-clip-text text-transparent font-['Clash_Display']">Digital Power</span>
         </Link>
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex gap-3 items-center">
-          {selectedWorker && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary rounded-md">
-              <UserCircle className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">{selectedWorker.name}</span>
+          {userName && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-50 to-orange-50 dark:from-purple-900/20 dark:to-orange-900/20 rounded-md border border-purple-200 dark:border-purple-700">
+              <UserCircle className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{userName}</span>
             </div>
           )}
           <ThemeSwitcher />
           <Link href="/health-stats">
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button variant="outline" size="sm" className="gap-2 border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20">
               <Activity className="h-4 w-4" />
               Эрүүл мэнд
             </Button>
           </Link>
           <Link href="/worker-requests">
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button variant="outline" size="sm" className="gap-2 border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20">
               <MessageSquare className="h-4 w-4" />
               Хүсэлт илгээх
             </Button>
           </Link>
           <Link href="/worker-dashboard">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20">
               Ажлын самбар
-            </Button>
-          </Link>
-          <Link href="/worker-select">
-            <Button variant="outline" size="sm">
-              Ажилчин солих
             </Button>
           </Link>
           <UserProfile />
@@ -84,32 +92,27 @@ export default function DashboardNavbar() {
                 <SheetTitle>Цэс</SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-3 mt-8">
-                {selectedWorker && (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-secondary rounded-md mb-2">
-                    <UserCircle className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-sm font-medium">{selectedWorker.name}</span>
+                {userName && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-50 to-orange-50 dark:from-purple-900/20 dark:to-orange-900/20 rounded-md mb-2 border border-purple-200 dark:border-purple-700">
+                    <UserCircle className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{userName}</span>
                   </div>
                 )}
                 <Link href="/health-stats" onClick={() => setOpen(false)}>
-                  <Button variant="outline" className="w-full justify-start text-base h-12 gap-2">
+                  <Button variant="outline" className="w-full justify-start text-base h-12 gap-2 border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20">
                     <Activity className="h-5 w-5" />
                     Эрүүл мэнд
                   </Button>
                 </Link>
                 <Link href="/worker-requests" onClick={() => setOpen(false)}>
-                  <Button variant="outline" className="w-full justify-start text-base h-12 gap-2">
+                  <Button variant="outline" className="w-full justify-start text-base h-12 gap-2 border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20">
                     <MessageSquare className="h-5 w-5" />
                     Хүсэлт илгээх
                   </Button>
                 </Link>
                 <Link href="/worker-dashboard" onClick={() => setOpen(false)}>
-                  <Button variant="outline" className="w-full justify-start text-base h-12">
+                  <Button variant="outline" className="w-full justify-start text-base h-12 border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20">
                     Ажлын самбар
-                  </Button>
-                </Link>
-                <Link href="/worker-select" onClick={() => setOpen(false)}>
-                  <Button variant="outline" className="w-full justify-start text-base h-12">
-                    Ажилчин солих
                   </Button>
                 </Link>
               </div>

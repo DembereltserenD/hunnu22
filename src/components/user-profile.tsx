@@ -1,12 +1,13 @@
 'use client'
 
-import { UserCircle, LogOut, User, Mail } from 'lucide-react'
+import { UserCircle, LogOut, User, Settings } from 'lucide-react'
 import { Button } from './ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
 import { createClient } from '../../supabase/client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 
 interface UserData {
     id: string;
@@ -79,36 +80,40 @@ export default function UserProfile() {
                     </Avatar>
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuContent align="end" className="w-64 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                 <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-2">
                         <div className="flex items-center gap-3">
                             <Avatar className="h-12 w-12">
                                 <AvatarImage src={avatarUrl} alt={displayName} />
-                                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold text-lg">
+                                <AvatarFallback className="bg-gradient-to-br from-purple-500 to-orange-400 text-white font-semibold text-lg">
                                     {getInitials(user?.user_metadata?.full_name, user?.email)}
                                 </AvatarFallback>
                             </Avatar>
                             <div className="flex flex-col space-y-1 flex-1 min-w-0">
-                                <p className="text-sm font-semibold leading-none truncate">{displayName}</p>
-                                <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                                <p className="text-sm font-semibold leading-none truncate text-gray-900 dark:text-gray-100">{displayName}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
                             </div>
                         </div>
                     </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer">
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                    <Mail className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
-                </DropdownMenuItem>
+                <Link href="/profile">
+                    <DropdownMenuItem className="cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/20">
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Хувийн мэдээлэл</span>
+                    </DropdownMenuItem>
+                </Link>
+                <Link href="/settings">
+                    <DropdownMenuItem className="cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/20">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Тохиргоо</span>
+                    </DropdownMenuItem>
+                </Link>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-red-600 dark:text-red-400">
+                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
                     <LogOut className="mr-2 h-4 w-4" />
-                    <span>Sign out</span>
+                    <span>Гарах</span>
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
