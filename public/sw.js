@@ -100,7 +100,9 @@ self.addEventListener('fetch', (event) => {
               });
             }
           })
-          .catch(() => {});
+          .catch((err) => {
+            console.error('Failed to update cache in background:', err);
+          });
         return cachedResponse;
       }
 
