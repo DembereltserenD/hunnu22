@@ -42,6 +42,7 @@
     "stripe": "^17.6.0",
     "tempo-devtools": "^2.0.94",
     "vaul": "^1.1.2",
+    "xlsx": "^0.18.5",
     "zod": "^4.1.12"
   },
   "devDependencies": {
@@ -51,6 +52,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/xlsx": "^0.0.35",
     "@vitejs/plugin-react": "^4.7.0",
     "happy-dom": "^20.0.10",
     "jsdom": "^27.0.1",
