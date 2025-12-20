@@ -3,12 +3,51 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle2, Phone, Flame, Home } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Phone, Flame, Home, ChevronUp, ChevronDown, AlertTriangle, AlertCircle } from "lucide-react";
 import { createClient } from '../../../../supabase/client';
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import DashboardNavbar from "@/components/dashboard-navbar";
+import { FirePanelTable } from "@/components/building/fire-panel-table";
+import { ApartmentDeviceInfo } from "@/components/building/apartment-device-info";
+import { useFirePanelData } from "@/hooks/use-fire-panel-data";
+
+type DeviceStatus = 'ok' | 'problem' | 'warning';
+
+interface DeviceAddress {
+  address: number;
+  status: DeviceStatus;
+}
+
+interface FirePanelDevice {
+  floor: number;
+  unit: string;
+  detectorAddresses: number[];
+  detectorStatuses: DeviceAddress[];
+  commonAreaAddresses: number[];
+  commonAreaStatuses: DeviceAddress[];
+  bellAddress: number | null;
+  bellStatus: DeviceStatus | null;
+  mcpAddress: number | null;
+  mcpStatus: DeviceStatus | null;
+  relayAddress: number | null;
+  relayStatus: DeviceStatus | null;
+  loop: string | null;
+}
+
+interface FirePanelData {
+  buildingCode: string;
+  devices: FirePanelDevice[];
+  loopSummaries: {
+    loop: string;
+    totalDetectors: number;
+    contaminated: number;
+    commFault: number;
+    normal: number;
+  }[];
+  lastUpdated: string | null;
+}
 
 export default function BuildingDetailPage() {
   const [data, setData] = useState<{
@@ -20,10 +59,19 @@ export default function BuildingDetailPage() {
     apartments: [],
     phoneIssues: []
   });
+  const [firePanelData, setFirePanelData] = useState<FirePanelData | null>(null);
+  const [firePanelError, setFirePanelError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedLoop, setSelectedLoop] = useState<string | null>(null);
   const params = useParams();
   const buildingId = params.id as string;
+
+  const ITEMS_PER_PAGE = 20;
+
+  // Process fire panel data using the smart hook
+  const { unitRows, availableLoops, stats: firePanelStats, problemStats } = useFirePanelData(firePanelData);
 
   useEffect(() => {
     setMounted(true);
@@ -95,6 +143,23 @@ export default function BuildingDetailPage() {
           apartments: apartments || [],
           phoneIssues: phoneIssues || []
         });
+
+        // Fetch fire panel data using building name
+        if (building?.name) {
+          try {
+            const response = await fetch(`/api/fire-panel/${encodeURIComponent(building.name)}`);
+            if (response.ok) {
+              const fpData = await response.json();
+              setFirePanelData(fpData);
+            } else {
+              const errorData = await response.json();
+              setFirePanelError(errorData.error || 'Failed to load fire panel data');
+            }
+          } catch (err) {
+            console.error('Error fetching fire panel data:', err);
+            setFirePanelError('Failed to connect to fire panel API');
+          }
+        }
       } catch (error: any) {
         console.error('Error loading building data:', {
           message: error?.message || 'Unknown error',
@@ -108,12 +173,27 @@ export default function BuildingDetailPage() {
     loadData();
   }, [buildingId]);
 
+  // Filter unit rows by selected loop
+  const filteredUnitRows = useMemo(() => {
+    if (selectedLoop) {
+      return unitRows.filter(row => row.loop === selectedLoop);
+    }
+    return unitRows;
+  }, [unitRows, selectedLoop]);
+
+  // Pagination for unit rows
+  const totalPages = Math.ceil(filteredUnitRows.length / ITEMS_PER_PAGE);
+  const paginatedUnits = filteredUnitRows.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
   if (loading || !mounted) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading building details...</p>
+          <p className="text-gray-600">Барилгын мэдээлэл ачаалж байна...</p>
         </div>
       </div>
     );
@@ -125,12 +205,12 @@ export default function BuildingDetailPage() {
         <DashboardNavbar />
         <div className="p-4">
           <div className="max-w-4xl mx-auto text-center py-12">
-            <h1 className="text-2xl font-bold text-gray-900">Building Not Found</h1>
-            <p className="text-gray-600 mt-2">The building you're looking for doesn't exist.</p>
+            <h1 className="text-2xl font-bold text-gray-900">Барилга олдсонгүй</h1>
+            <p className="text-gray-600 mt-2">Таны хайж буй барилга байхгүй байна.</p>
             <Link href="/dashboard">
               <Button className="mt-4">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Dashboard
+                Хяналтын самбар руу буцах
               </Button>
             </Link>
           </div>
@@ -162,7 +242,6 @@ export default function BuildingDetailPage() {
     totalSmokeDetectorsCleaned: data.phoneIssues
       .filter(issue => issue.issue_type === 'smoke_detector' && issue.status === 'болсон')
       .reduce((total, issue) => {
-        // Extract quantity from description (e.g., "Cleared 3 smoke detectors")
         const quantityMatch = issue.description?.match(/Cleared (\d+)/);
         return total + (quantityMatch ? parseInt(quantityMatch[1]) : 1);
       }, 0),
@@ -173,23 +252,15 @@ export default function BuildingDetailPage() {
       issue.status === 'open' || issue.status === 'тусламж хэрэгтэй' || issue.status === 'цэвэрлэх хэрэгтэй'
     ).length,
 
-    workersInvolved: Array.from(new Set(
-      data.phoneIssues
-        .filter(issue => issue.worker && issue.status === 'болсон')
-        .map(issue => issue.worker.name)
-    )),
-
-    lastMaintenanceDate: data.phoneIssues
-      .filter(issue => issue.status === 'болсон' && issue.resolved_at)
-      .sort((a, b) => new Date(b.resolved_at).getTime() - new Date(a.resolved_at).getTime())[0]?.resolved_at,
-
-    phoneCallIssues: data.phoneIssues.filter(issue =>
-      ['domophone', 'light_bulb'].includes(issue.issue_type)
-    ).length,
-
     maintenanceRecords: data.phoneIssues.filter(issue =>
       issue.issue_type === 'smoke_detector'
     )
+  };
+
+  // Get detector addresses for a specific apartment from fire panel data
+  const getApartmentDetectors = (unitNumber: string): FirePanelDevice | null => {
+    if (!firePanelData?.devices) return null;
+    return firePanelData.devices.find(d => d.unit === unitNumber) || null;
   };
 
   return (
@@ -201,7 +272,7 @@ export default function BuildingDetailPage() {
             <Link href="/dashboard">
               <Button variant="outline" className="border-gray-300 hover:bg-gray-50">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Dashboard
+                Хяналтын самбар руу буцах
               </Button>
             </Link>
             <div className="flex-1">
@@ -210,58 +281,129 @@ export default function BuildingDetailPage() {
             </div>
           </div>
 
-          {/* Enhanced Building Statistics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2">
-                  <Home className="h-5 w-5 text-blue-600" />
-                  <div>
-                    <p className="text-2xl font-bold">{data.apartments.length}</p>
-                    <p className="text-xs text-gray-600">Total Units</p>
+          {/* Fire System Panel - Modern UI */}
+          <div className="mb-8">
+            <Card className="overflow-hidden border-0 shadow-xl bg-white dark:bg-slate-900">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-red-600 to-orange-500 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <Flame className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-white">Галын аюулгүй байдлын систем</h2>
+                      <p className="text-white/80 text-sm">{data.building.name}</p>
+                    </div>
                   </div>
+                  <Badge className="bg-white/20 text-white border-0 hover:bg-white/30">
+                    {firePanelData?.buildingCode || 'Өгөгдөл байхгүй'}
+                  </Badge>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
 
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2">
-                  <Flame className="h-5 w-5 text-green-600" />
-                  <div>
-                    <p className="text-2xl font-bold">{maintenanceStats.totalSmokeDetectorsCleaned}</p>
-                    <p className="text-xs text-gray-600">SD Units Cleaned</p>
+              <CardContent className="p-6">
+                {firePanelError ? (
+                  <div className="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                    <AlertCircle className="h-5 w-5 text-amber-600" />
+                    <span className="text-amber-800 dark:text-amber-200">{firePanelError}</span>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                ) : (
+                  <>
+                    {/* Stats Cards */}
+                    <div className="grid grid-cols-4 gap-4 mb-6">
+                      <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-xl p-4 text-center">
+                        <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{firePanelStats.totalDevices}</div>
+                        <div className="text-xs text-blue-600/70 dark:text-blue-400/70 font-medium mt-1">Нийт төхөөрөмж</div>
+                      </div>
+                      <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-800/30 rounded-xl p-4 text-center">
+                        <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{firePanelStats.normal}</div>
+                        <div className="text-xs text-emerald-600/70 dark:text-emerald-400/70 font-medium mt-1">Хэвийн</div>
+                      </div>
+                      <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/30 rounded-xl p-4 text-center">
+                        <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{firePanelStats.contaminated}</div>
+                        <div className="text-xs text-amber-600/70 dark:text-amber-400/70 font-medium mt-1">Бохирдсон</div>
+                      </div>
+                      <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 rounded-xl p-4 text-center">
+                        <div className="text-2xl font-bold text-red-600 dark:text-red-400">{firePanelStats.commFault}</div>
+                        <div className="text-xs text-red-600/70 dark:text-red-400/70 font-medium mt-1">Холболтын алдаа</div>
+                      </div>
+                    </div>
 
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-purple-600" />
-                  <div>
-                    <p className="text-2xl font-bold">{maintenanceStats.completedMaintenanceRecords}</p>
-                    <p className="text-xs text-gray-600">Completed Records</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                    {/* Loop Filter */}
+                    {availableLoops.length > 0 && (
+                      <div className="flex items-center gap-3 mb-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                        <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Loop шүүлтүүр:</span>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => { setSelectedLoop(null); setCurrentPage(1); }}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${!selectedLoop
+                              ? 'bg-blue-600 text-white shadow-md'
+                              : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600'
+                              }`}
+                          >
+                            Бүгд
+                          </button>
+                          {availableLoops.map((loop) => (
+                            <button
+                              key={loop}
+                              onClick={() => { setSelectedLoop(selectedLoop === loop ? null : loop); setCurrentPage(1); }}
+                              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${selectedLoop === loop
+                                ? 'bg-blue-600 text-white shadow-md'
+                                : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600'
+                                }`}
+                            >
+                              {loop}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2">
-                  <Phone className="h-5 w-5 text-orange-600" />
-                  <div>
-                    <p className="text-2xl font-bold">{maintenanceStats.openIssues}</p>
-                    <p className="text-xs text-gray-600">Open Issues</p>
-                  </div>
-                </div>
+                    {/* Device Table - Smart Component */}
+                    <FirePanelTable units={paginatedUnits} />
+
+                    {/* Pagination */}
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                      <div className="text-sm text-slate-600 dark:text-slate-400">
+                        Нийт <span className="font-medium">{filteredUnitRows.length}</span> айл
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                          disabled={currentPage <= 1}
+                          className="h-9"
+                        >
+                          <ChevronUp className="h-4 w-4 mr-1" />
+                          Өмнөх
+                        </Button>
+                        <div className="flex items-center gap-1 px-3">
+                          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{currentPage}</span>
+                          <span className="text-sm text-slate-400">/</span>
+                          <span className="text-sm text-slate-500">{totalPages || 1}</span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setCurrentPage(Math.min(totalPages || 1, currentPage + 1))}
+                          disabled={currentPage >= (totalPages || 1)}
+                          className="h-9"
+                        >
+                          Дараах
+                          <ChevronDown className="h-4 w-4 ml-1" />
+                        </Button>
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {firePanelData?.lastUpdated && new Date(firePanelData.lastUpdated).toLocaleString('mn-MN')}
+                      </div>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
-
-
 
           {/* Recent Maintenance Activity */}
           {maintenanceStats.maintenanceRecords.length > 0 && (
@@ -269,7 +411,7 @@ export default function BuildingDetailPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Flame className="w-5 h-5 text-orange-600" />
-                  Recent Maintenance Activity
+                  Сүүлийн үйлчилгээний бүртгэл
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -285,10 +427,10 @@ export default function BuildingDetailPage() {
                           <Flame className="w-5 h-5 text-green-500" />
                           <div>
                             <p className="font-medium text-sm">
-                              Unit {apartment?.unit_number} - {quantity} Smoke Detector{quantity > 1 ? 's' : ''}
+                              {apartment?.unit_number} тоот - {quantity} Утааны мэдрэгч
                             </p>
                             <p className="text-xs text-gray-600">
-                              {record.worker?.name || 'Unknown Worker'} • {record.phone_number}
+                              {record.worker?.name || 'Тодорхойгүй'} • {record.phone_number}
                             </p>
                             {record.description && (
                               <p className="text-xs text-gray-500 mt-1">{record.description}</p>
@@ -311,14 +453,14 @@ export default function BuildingDetailPage() {
                                       'bg-red-100 text-red-800'
                             }
                           >
-                            {record.status === 'болсон' && 'Completed'}
-                            {record.status === 'хүлээж авсан' && 'In Progress'}
-                            {record.status === 'тусламж хэрэгтэй' && 'Needs Help'}
-                            {record.status === 'цэвэрлэх хэрэгтэй' && 'Needs Cleaning'}
-                            {record.status === 'open' && 'Open'}
+                            {record.status === 'болсон' && 'Дууссан'}
+                            {record.status === 'хүлээж авсан' && 'Хүлээгдэж байна'}
+                            {record.status === 'тусламж хэрэгтэй' && 'Тусламж хэрэгтэй'}
+                            {record.status === 'цэвэрлэх хэрэгтэй' && 'Цэвэрлэх хэрэгтэй'}
+                            {record.status === 'open' && 'Нээлттэй'}
                           </Badge>
                           <p className="text-xs text-gray-500 mt-1">
-                            {new Date(record.created_at).toLocaleDateString()}
+                            {new Date(record.created_at).toLocaleDateString('mn-MN')}
                           </p>
                         </div>
                       </div>
@@ -328,7 +470,7 @@ export default function BuildingDetailPage() {
                   {maintenanceStats.maintenanceRecords.length > 5 && (
                     <div className="text-center pt-2">
                       <p className="text-sm text-gray-500">
-                        +{maintenanceStats.maintenanceRecords.length - 5} more maintenance records
+                        +{maintenanceStats.maintenanceRecords.length - 5} нэмэлт бүртгэл
                       </p>
                     </div>
                   )}
@@ -344,9 +486,9 @@ export default function BuildingDetailPage() {
                 <Card key={floorGroup.floor}>
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
-                      <span>Floor {floorGroup.floor}</span>
+                      <span>{floorGroup.floor} давхар</span>
                       <Badge variant="outline" className="font-mono">
-                        {floorGroup.apartments.length} unit{floorGroup.apartments.length !== 1 ? 's' : ''}
+                        {floorGroup.apartments.length} айл
                       </Badge>
                     </CardTitle>
                   </CardHeader>
@@ -358,14 +500,8 @@ export default function BuildingDetailPage() {
                         const resolvedIssues = apartmentPhoneIssues.filter(issue => issue.status === 'болсон').length;
                         const needsCleaningIssues = apartmentPhoneIssues.filter(issue => issue.status === 'цэвэрлэх хэрэгтэй').length;
 
-                        // Calculate detailed apartment statistics
-                        const apartmentMaintenanceRecords = apartmentPhoneIssues.filter(issue => issue.issue_type === 'smoke_detector');
-                        const apartmentSmokeDetectorsCleaned = apartmentMaintenanceRecords
-                          .filter(issue => issue.status === 'болсон')
-                          .reduce((total, issue) => {
-                            const quantityMatch = issue.description?.match(/Cleared (\d+)/);
-                            return total + (quantityMatch ? parseInt(quantityMatch[1]) : 1);
-                          }, 0);
+                        // Get detector info from fire panel data
+                        const detectorInfo = getApartmentDetectors(apartment.unit_number);
 
                         return (
                           <Link key={apartment.id} href={`/apartment/${apartment.id}`}>
@@ -374,51 +510,41 @@ export default function BuildingDetailPage() {
                                 <div className="flex items-center justify-between">
                                   <div className="flex-1">
                                     <div className="flex items-center gap-3 mb-2">
-                                      <h3 className="text-lg font-semibold">Unit {apartment.unit_number}</h3>
+                                      <h3 className="text-lg font-semibold">{apartment.unit_number} тоот</h3>
 
-                                      {apartmentSmokeDetectorsCleaned > 0 && (
-                                        <Badge className="bg-green-100 text-green-800">
+                                      {detectorInfo && detectorInfo.detectorAddresses.length > 0 && (
+                                        <Badge className="bg-blue-100 text-blue-800">
                                           <Flame className="w-3 h-3 mr-1" />
-                                          {apartmentSmokeDetectorsCleaned} SD cleaned
+                                          {detectorInfo.detectorAddresses.length} мэдрэгч
                                         </Badge>
                                       )}
 
                                       {resolvedIssues > 0 && (
-                                        <Badge className="bg-blue-100 text-blue-800">
+                                        <Badge className="bg-green-100 text-green-800">
                                           <CheckCircle2 className="w-3 h-3 mr-1" />
-                                          {resolvedIssues} completed
+                                          {resolvedIssues} дууссан
                                         </Badge>
                                       )}
 
                                       {needsCleaningIssues > 0 && (
                                         <Badge className="bg-yellow-100 text-yellow-800">
                                           <Flame className="w-3 h-3 mr-1" />
-                                          {needsCleaningIssues} needs cleaning
+                                          {needsCleaningIssues} цэвэрлэх
                                         </Badge>
                                       )}
 
                                       {openIssues > 0 && (
                                         <Badge variant="destructive">
                                           <Phone className="w-3 h-3 mr-1" />
-                                          {openIssues} open
+                                          {openIssues} нээлттэй
                                         </Badge>
                                       )}
                                     </div>
 
-                                    <div className="text-sm text-gray-600 space-y-1">
-                                      {apartmentPhoneIssues.length > 0 ? (
-                                        <>
-                                          <div>{apartmentPhoneIssues.length} total maintenance record{apartmentPhoneIssues.length !== 1 ? 's' : ''}</div>
-                                          {apartmentMaintenanceRecords.length > 0 && (
-                                            <div className="text-xs text-green-600">
-                                              {apartmentMaintenanceRecords.length} cleaning session{apartmentMaintenanceRecords.length !== 1 ? 's' : ''}
-                                            </div>
-                                          )}
-                                        </>
-                                      ) : (
-                                        <span>No maintenance records</span>
-                                      )}
-                                    </div>
+                                    <ApartmentDeviceInfo detectorInfo={detectorInfo} />
+                                    {apartmentPhoneIssues.length > 0 && (
+                                      <div className="text-sm text-gray-600">{apartmentPhoneIssues.length} үйлчилгээний бүртгэл</div>
+                                    )}
                                   </div>
                                 </div>
                               </CardContent>
@@ -435,9 +561,9 @@ export default function BuildingDetailPage() {
             <Card>
               <CardContent className="py-12 text-center">
                 <Home className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No apartments found</h3>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">Айл олдсонгүй</h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  This building doesn't have any apartments yet. Create some through the admin panel or bulk import.
+                  Энэ барилгад айл бүртгэгдээгүй байна. Админ хэсгээс нэмэхэд бэлэн.
                 </p>
               </CardContent>
             </Card>
