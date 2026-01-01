@@ -12,7 +12,7 @@ Fixed critical accountability issues where actions were being performed without 
 **Location**: `src/app/worker-dashboard/page.tsx`
 **Fix**:
 
-- Automatically load current worker from localStorage (set at /worker-select)
+- Automatically load current worker from authentication (set at /sign-in)
 - Save worker_id to database on every status change
 - Display which worker handled each issue
 - Visual distinction: green + "Та" badge for current worker's issues, blue for others
@@ -25,7 +25,7 @@ Fixed critical accountability issues where actions were being performed without 
 **Fix**:
 
 - Load current worker from localStorage
-- Redirect to /worker-select if no worker selected
+- Redirect to /sign-in if not authenticated
 - Display current worker name in form
 - Save actual worker_id when creating visit
 - Added validation to prevent submission without worker
@@ -42,14 +42,14 @@ Fixed critical accountability issues where actions were being performed without 
 
 ### Worker Selection Flow
 
-1. Worker selects their profile at `/worker-select`
-2. Worker info saved to `localStorage.selectedWorker`
-3. All pages load worker from localStorage
-4. If no worker found, redirect to `/worker-select`
+1. Worker signs in at `/sign-in`
+2. Worker info saved to Supabase auth session
+3. All pages load worker from authentication
+4. If not authenticated, redirect to `/sign-in`
 
 ### Status Change Flow (Worker Dashboard)
 
-1. Worker must be logged in (from /worker-select)
+1. Worker must be authenticated (from /sign-in)
 2. When changing status, system saves:
    - New status
    - worker_id (who made the change)

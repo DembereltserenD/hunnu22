@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Phone, CheckCircle2, Clock, AlertCircle, HelpCircle } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { createClient } from '../../../supabase/client';
 import { useToast } from "@/components/ui/use-toast";
 import DashboardNavbar from "@/components/dashboard-navbar";
@@ -51,37 +50,52 @@ export default function WorkerDashboardPage() {
     const [showNotesDialog, setShowNotesDialog] = useState(false);
     const [mounted, setMounted] = useState(false);
     const { toast } = useToast();
-    const router = useRouter();
 
     useEffect(() => {
         setMounted(true);
 
-        // Load worker from localStorage
-        const storedWorker = localStorage.getItem('selectedWorker');
-        if (storedWorker) {
+        // Load current user from Supabase auth
+        const loadCurrentUser = async () => {
             try {
-                const worker = JSON.parse(storedWorker);
-                setCurrentWorker(worker);
-            } catch (error) {
-                console.error('Error parsing stored worker:', error);
-                toast({
-                    title: 'Алдаа',
-                    description: 'Ажилчны мэдээлэл олдсонгүй. Дахин нэвтэрнэ үү.',
-                    variant: 'destructive'
-                });
-                router.push('/worker-select');
-                return;
-            }
-        } else {
-            toast({
-                title: 'Анхааруулга',
-                description: 'Эхлээд ажилчин сонгоно уу',
-                variant: 'destructive'
-            });
-            router.push('/worker-select');
-            return;
-        }
+                const supabase = createClient();
+                const { data: { user } } = await supabase.auth.getUser();
 
+                if (user) {
+                    // Try to find matching worker by email
+                    const { data: workers } = await supabase
+                        .from('workers')
+                        .select('id, name, email, phone')
+                        .eq('email', user.email)
+                        .limit(1);
+
+                    if (workers && workers.length > 0) {
+                        setCurrentWorker(workers[0]);
+                    } else {
+                        // Auto-create worker record for this user
+                        const workerName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Unknown';
+                        const { data: newWorker, error: createError } = await supabase
+                            .from('workers')
+                            .insert({
+                                name: workerName,
+                                email: user.email,
+                            })
+                            .select()
+                            .single();
+
+                        if (newWorker && !createError) {
+                            setCurrentWorker(newWorker);
+                        } else {
+                            console.error('Error creating worker:', createError);
+                            setCurrentWorker(null);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading current user:', error);
+            }
+        };
+
+        loadCurrentUser();
         loadMaintenanceRecords();
     }, []);
 
@@ -117,6 +131,7 @@ export default function WorkerDashboardPage() {
                     variant: 'destructive'
                 });
                 setRecords([]);
+                setLoading(false);
                 return;
             }
 
@@ -182,10 +197,9 @@ export default function WorkerDashboardPage() {
         if (!currentWorker) {
             toast({
                 title: 'Анхааруулга',
-                description: 'Ажилчин сонгоно уу!',
+                description: 'Хэрэглэгчийн мэдээлэл ачааллаж байна. Түр хүлээнэ үү.',
                 variant: 'destructive'
             });
-            router.push('/worker-select');
             return;
         }
 
@@ -257,10 +271,9 @@ export default function WorkerDashboardPage() {
         if (!currentWorker) {
             toast({
                 title: 'Анхааруулга',
-                description: 'Эхлээд ажилчин сонгоно уу!',
+                description: 'Хэрэглэгчийн мэдээлэл ачааллаж байна. Түр хүлээнэ үү.',
                 variant: 'destructive'
             });
-            router.push('/worker-select');
             return;
         }
 
@@ -347,7 +360,7 @@ export default function WorkerDashboardPage() {
         needsHelp: records.filter(r => r.status === 'тусламж хэрэгтэй').length
     };
 
-    if (!mounted || loading || !currentWorker) {
+    if (!mounted || loading) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
                 <DashboardNavbar />

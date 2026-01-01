@@ -2,28 +2,32 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Building2, AlertTriangle, CheckCircle2, Activity, TrendingUp, TrendingDown } from "lucide-react";
+import { Building2, AlertTriangle, CheckCircle2, Activity } from "lucide-react";
 import DashboardNavbar from "@/components/dashboard-navbar";
-import { createClient } from '../../../supabase/client';
 
 interface BuildingHealth {
-  id: string;
-  name: string;
-  totalApartments: number;
-  issueCount: number;
-  healthScore: number;
+  buildingCode: string;
+  totalDevices: number;
+  normal: number;
+  contaminated: number;
+  commFault: number;
+  healthPercent: number;
   status: 'healthy' | 'warning' | 'danger';
 }
 
 export default function HealthStatsPage() {
   const [buildings, setBuildings] = useState<BuildingHealth[]>([]);
   const [loading, setLoading] = useState(true);
-  const [totalIssues, setTotalIssues] = useState(0);
+  const [totals, setTotals] = useState({
+    totalDevices: 0,
+    normal: 0,
+    contaminated: 0,
+    commFault: 0
+  });
 
   useEffect(() => {
     loadHealthData();
-    
+
     // Refresh data every 30 seconds
     const interval = setInterval(loadHealthData, 30000);
     return () => clearInterval(interval);
@@ -31,91 +35,105 @@ export default function HealthStatsPage() {
 
   const loadHealthData = async () => {
     try {
-      const supabase = createClient();
+      const firePanelRes = await fetch('/api/fire-panel');
+      const firePanelData = await firePanelRes.json();
 
-      const [buildingsRes, apartmentsRes, phoneIssuesRes] = await Promise.all([
-        supabase.from('buildings').select('*'),
-        supabase.from('apartments').select('*'),
-        supabase.from('phone_issues').select('*')
-      ]);
+      if (firePanelData.buildings && firePanelData.buildings.length > 0) {
+        const healthData: BuildingHealth[] = [];
+        let totalDevices = 0, totalNormal = 0, totalContaminated = 0, totalCommFault = 0;
 
-      const buildingsData = buildingsRes.data || [];
-      const apartmentsData = apartmentsRes.data || [];
-      const issuesData = phoneIssuesRes.data || [];
+        const buildingPromises = firePanelData.buildings.map((buildingCode: string) =>
+          fetch(`/api/fire-panel/${encodeURIComponent(buildingCode)}`).then(res => res.json()).then(data => ({ buildingCode, data }))
+        );
 
-      // Calculate health for each building
-      const healthData: BuildingHealth[] = buildingsData.map(building => {
-        const buildingApartments = apartmentsData.filter(apt => apt.building_id === building.id);
-        const buildingIssues = issuesData.filter(issue => {
-          const apartment = apartmentsData.find(apt => apt.id === issue.apartment_id);
-          return apartment && apartment.building_id === building.id && 
-                 (issue.status === 'open' || issue.status === 'цэвэрлэх хэрэгтэй' || issue.status === 'тусламж хэрэгтэй');
+        const buildingResults = await Promise.all(buildingPromises);
+
+        buildingResults.forEach(({ buildingCode, data: buildingData }: { buildingCode: string; data: any }) => {
+          let bTotal = 0, bNormal = 0, bContaminated = 0, bCommFault = 0;
+
+          // Count from devices array (same as building page)
+          if (buildingData.devices && buildingData.devices.length > 0) {
+            buildingData.devices.forEach((device: any) => {
+              // Count detectors
+              const detectors = device.detectorStatuses || device.detectorAddresses?.map((addr: number) => ({ address: addr, status: 'ok' })) || [];
+              detectors.forEach((d: any) => {
+                bTotal++;
+                if (d.status === 'problem') bContaminated++;
+                else if (d.status === 'warning') bCommFault++;
+                else bNormal++;
+              });
+
+              // Count common area
+              const commonArea = device.commonAreaStatuses || device.commonAreaAddresses?.map((addr: number) => ({ address: addr, status: 'ok' })) || [];
+              commonArea.forEach((d: any) => {
+                bTotal++;
+                if (d.status === 'problem') bContaminated++;
+                else if (d.status === 'warning') bCommFault++;
+                else bNormal++;
+              });
+
+              // Count bell, mcp, relay
+              if (device.bellAddress) {
+                bTotal++;
+                if (device.bellStatus === 'problem') bContaminated++;
+                else if (device.bellStatus === 'warning') bCommFault++;
+                else bNormal++;
+              }
+              if (device.mcpAddress) {
+                bTotal++;
+                if (device.mcpStatus === 'problem') bContaminated++;
+                else if (device.mcpStatus === 'warning') bCommFault++;
+                else bNormal++;
+              }
+              if (device.relayAddress) {
+                bTotal++;
+                if (device.relayStatus === 'problem') bContaminated++;
+                else if (device.relayStatus === 'warning') bCommFault++;
+                else bNormal++;
+              }
+            });
+          }
+
+          const healthPercent = bTotal > 0 ? Math.round((bNormal / bTotal) * 100) : 100;
+          let status: 'healthy' | 'warning' | 'danger' = 'healthy';
+
+          if (healthPercent < 80) {
+            status = 'danger';
+          } else if (healthPercent < 95) {
+            status = 'warning';
+          }
+
+          healthData.push({
+            buildingCode,
+            totalDevices: bTotal,
+            normal: bNormal,
+            contaminated: bContaminated,
+            commFault: bCommFault,
+            healthPercent,
+            status
+          });
+
+          totalDevices += bTotal;
+          totalNormal += bNormal;
+          totalContaminated += bContaminated;
+          totalCommFault += bCommFault;
         });
 
-        const issueCount = buildingIssues.length;
-        let status: 'healthy' | 'warning' | 'danger' = 'healthy';
-        
-        if (issueCount >= 100) {
-          status = 'danger';
-        } else if (issueCount >= 50) {
-          status = 'warning';
-        }
+        // Sort by health percent (worst first)
+        healthData.sort((a, b) => a.healthPercent - b.healthPercent);
 
-        return {
-          id: building.id,
-          name: building.name,
-          totalApartments: buildingApartments.length,
-          issueCount,
-          healthScore: Math.max(0, 100 - (issueCount / buildingApartments.length) * 100),
-          status
-        };
-      });
-
-      setBuildings(healthData);
-      setTotalIssues(issuesData.filter(i => i.status === 'open' || i.status === 'цэвэрлэх хэрэгтэй' || i.status === 'тусламж хэрэгтэй').length);
+        setBuildings(healthData);
+        setTotals({
+          totalDevices,
+          normal: totalNormal,
+          contaminated: totalContaminated,
+          commFault: totalCommFault
+        });
+      }
     } catch (error) {
       console.error('Error loading health data:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'healthy':
-        return 'text-green-600 bg-green-50 border-green-200';
-      case 'warning':
-        return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      case 'danger':
-        return 'text-red-600 bg-red-50 border-red-200';
-      default:
-        return 'text-gray-600 bg-gray-50 border-gray-200';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'healthy':
-        return <CheckCircle2 className="h-8 w-8" />;
-      case 'warning':
-        return <AlertTriangle className="h-8 w-8" />;
-      case 'danger':
-        return <AlertTriangle className="h-8 w-8" />;
-      default:
-        return <Activity className="h-8 w-8" />;
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'healthy':
-        return 'Эрүүл мэнд сайн';
-      case 'warning':
-        return 'Анхааруулга';
-      case 'danger':
-        return 'Аюултай';
-      default:
-        return 'Тодорхойгүй';
     }
   };
 
@@ -133,179 +151,155 @@ export default function HealthStatsPage() {
     );
   }
 
+  const overallHealthPercent = totals.totalDevices > 0
+    ? Math.round((totals.normal / totals.totalDevices) * 100)
+    : 100;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <DashboardNavbar />
-      
+
       <div className="container mx-auto p-4 sm:p-6 lg:p-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-2">
-            Эрүүл мэндийн статистик
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Хүннү 22 барилгын эрүүл мэндийн байдлын хяналт
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-500 rounded-lg shadow-lg">
+              <Activity className="h-6 w-6 text-white" />
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-500 bg-clip-text text-transparent">
+              Барилгын эрүүл мэнд
+            </h1>
+          </div>
+          <p className="text-gray-600 dark:text-gray-400 ml-14">
+            Галын мэдрэгчийн төхөөрөмжүүдийн байдлын хяналт
           </p>
         </div>
 
         {/* Overall Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card className="bg-white dark:bg-slate-900 border-2">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Нийт барилга</p>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white">{buildings.length}</p>
-                </div>
-                <Building2 className="h-10 w-10 text-blue-600" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white dark:bg-slate-900 border-2">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Нийт асуудал</p>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white">{totalIssues}</p>
-                </div>
-                <AlertTriangle className="h-10 w-10 text-orange-600" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white dark:bg-slate-900 border-2">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Эрүүл барилга</p>
-                  <p className="text-3xl font-bold text-green-600">
-                    {buildings.filter(b => b.status === 'healthy').length}
-                  </p>
-                </div>
-                <CheckCircle2 className="h-10 w-10 text-green-600" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white dark:bg-slate-900 border-2">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Аюултай барилга</p>
-                  <p className="text-3xl font-bold text-red-600">
-                    {buildings.filter(b => b.status === 'danger').length}
-                  </p>
-                </div>
-                <AlertTriangle className="h-10 w-10 text-red-600 animate-pulse" />
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-xl p-4 text-center">
+            <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{totals.totalDevices.toLocaleString()}</div>
+            <div className="text-xs text-blue-600/70 dark:text-blue-400/70 font-medium mt-1">Нийт төхөөрөмж</div>
+          </div>
+          <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-800/30 rounded-xl p-4 text-center">
+            <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{totals.normal.toLocaleString()}</div>
+            <div className="text-xs text-emerald-600/70 dark:text-emerald-400/70 font-medium mt-1">Хэвийн</div>
+          </div>
+          <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/30 rounded-xl p-4 text-center">
+            <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">{totals.contaminated.toLocaleString()}</div>
+            <div className="text-xs text-amber-600/70 dark:text-amber-400/70 font-medium mt-1">Бохирдсон</div>
+          </div>
+          <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 rounded-xl p-4 text-center">
+            <div className="text-3xl font-bold text-red-600 dark:text-red-400">{totals.commFault.toLocaleString()}</div>
+            <div className="text-xs text-red-600/70 dark:text-red-400/70 font-medium mt-1">Холболтын алдаа</div>
+          </div>
         </div>
 
+        {/* Overall Health Bar */}
+        <Card className="mb-8 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-lg font-semibold text-gray-900 dark:text-white">Нийт эрүүл мэндийн байдал</span>
+              <span className={`text-2xl font-bold ${
+                overallHealthPercent >= 95 ? 'text-emerald-600' :
+                overallHealthPercent >= 80 ? 'text-amber-600' :
+                'text-red-600'
+              }`}>{overallHealthPercent}%</span>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden">
+              <div
+                className={`h-full transition-all duration-500 ${
+                  overallHealthPercent >= 95 ? 'bg-emerald-500' :
+                  overallHealthPercent >= 80 ? 'bg-amber-500' :
+                  'bg-red-500'
+                }`}
+                style={{ width: `${overallHealthPercent}%` }}
+              ></div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Buildings Health Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {buildings.map((building) => (
             <Card
-              key={building.id}
-              className={`relative overflow-hidden border-2 transition-all duration-300 hover:shadow-xl ${getStatusColor(building.status)} ${
-                building.status === 'danger' ? 'animate-pulse-slow' : ''
-              } ${building.status === 'warning' ? 'animate-pulse-slower' : ''}`}
+              key={building.buildingCode}
+              className={`relative overflow-hidden border-2 transition-all duration-300 hover:shadow-xl bg-white dark:bg-slate-900 ${
+                building.status === 'healthy' ? 'border-emerald-200 dark:border-emerald-800' :
+                building.status === 'warning' ? 'border-amber-200 dark:border-amber-800' :
+                'border-red-200 dark:border-red-800'
+              }`}
             >
               {/* Status Indicator Bar */}
-              <div className={`absolute top-0 left-0 right-0 h-2 ${
-                building.status === 'healthy' ? 'bg-green-500' :
-                building.status === 'warning' ? 'bg-yellow-500 animate-pulse' :
+              <div className={`absolute top-0 left-0 right-0 h-1.5 ${
+                building.status === 'healthy' ? 'bg-emerald-500' :
+                building.status === 'warning' ? 'bg-amber-500' :
                 'bg-red-500 animate-pulse'
               }`}></div>
 
-              <CardHeader className="pb-3 pt-6">
+              <CardHeader className="pb-2 pt-5">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 text-xl">
-                    <Building2 className="h-6 w-6" />
-                    {building.name}
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Building2 className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    {building.buildingCode}
                   </CardTitle>
-                  <div className={`p-2 rounded-full ${
-                    building.status === 'healthy' ? 'bg-green-100' :
-                    building.status === 'warning' ? 'bg-yellow-100' :
-                    'bg-red-100'
+                  <div className={`p-1.5 rounded-full ${
+                    building.status === 'healthy' ? 'bg-emerald-100 dark:bg-emerald-900/30' :
+                    building.status === 'warning' ? 'bg-amber-100 dark:bg-amber-900/30' :
+                    'bg-red-100 dark:bg-red-900/30'
                   }`}>
-                    {getStatusIcon(building.status)}
+                    {building.status === 'healthy' ? (
+                      <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                    ) : (
+                      <AlertTriangle className={`h-5 w-5 ${
+                        building.status === 'warning' ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'
+                      }`} />
+                    )}
                   </div>
                 </div>
               </CardHeader>
 
-              <CardContent className="space-y-4">
-                {/* Status Badge */}
-                <div className="flex items-center justify-between">
-                  <Badge className={`text-sm px-3 py-1 ${
-                    building.status === 'healthy' ? 'bg-green-500 hover:bg-green-600' :
-                    building.status === 'warning' ? 'bg-yellow-500 hover:bg-yellow-600' :
-                    'bg-red-500 hover:bg-red-600'
-                  }`}>
-                    {getStatusText(building.status)}
-                  </Badge>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    {building.totalApartments} айл
-                  </span>
-                </div>
-
-                {/* Issue Count */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium">Асуудлын тоо:</span>
-                    <span className={`text-2xl font-bold ${
-                      building.status === 'healthy' ? 'text-green-600' :
-                      building.status === 'warning' ? 'text-yellow-600' :
-                      'text-red-600'
-                    }`}>
-                      {building.issueCount}
-                    </span>
+              <CardContent className="space-y-3">
+                {/* Stats Grid */}
+                <div className="grid grid-cols-4 gap-1.5 text-center">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded p-1.5">
+                    <div className="text-sm font-bold text-blue-600 dark:text-blue-400">{building.totalDevices}</div>
+                    <div className="text-[9px] text-blue-600/70 dark:text-blue-400/70">Нийт</div>
                   </div>
-
-                  {/* Health Score Bar */}
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
-                      <span>Эрүүл мэндийн оноо</span>
-                      <span className="font-medium">{Math.round(building.healthScore)}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
-                      <div
-                        className={`h-full transition-all duration-500 ${
-                          building.status === 'healthy' ? 'bg-green-500' :
-                          building.status === 'warning' ? 'bg-yellow-500' :
-                          'bg-red-500'
-                        }`}
-                        style={{ width: `${building.healthScore}%` }}
-                      ></div>
-                    </div>
+                  <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded p-1.5">
+                    <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{building.normal}</div>
+                    <div className="text-[9px] text-emerald-600/70 dark:text-emerald-400/70">Хэвийн</div>
+                  </div>
+                  <div className="bg-amber-50 dark:bg-amber-900/20 rounded p-1.5">
+                    <div className="text-sm font-bold text-amber-600 dark:text-amber-400">{building.contaminated}</div>
+                    <div className="text-[9px] text-amber-600/70 dark:text-amber-400/70">Бохир</div>
+                  </div>
+                  <div className="bg-red-50 dark:bg-red-900/20 rounded p-1.5">
+                    <div className="text-sm font-bold text-red-600 dark:text-red-400">{building.commFault}</div>
+                    <div className="text-[9px] text-red-600/70 dark:text-red-400/70">Алдаа</div>
                   </div>
                 </div>
 
-                {/* Status Description */}
-                <div className={`p-3 rounded-lg text-sm ${
-                  building.status === 'healthy' ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200' :
-                  building.status === 'warning' ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200' :
-                  'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200'
-                }`}>
-                  {building.status === 'healthy' && (
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span>20-с бага асуудал - Эрүүл байна</span>
-                    </div>
-                  )}
-                  {building.status === 'warning' && (
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 animate-pulse" />
-                      <span>50-100 асуудал - Анхаарал хэрэгтэй</span>
-                    </div>
-                  )}
-                  {building.status === 'danger' && (
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 animate-pulse" />
-                      <span>100+ асуудал - Аюултай байдал!</span>
-                    </div>
-                  )}
+                {/* Health Score Bar */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-600 dark:text-gray-400">Эрүүл мэнд</span>
+                    <span className={`font-bold ${
+                      building.status === 'healthy' ? 'text-emerald-600 dark:text-emerald-400' :
+                      building.status === 'warning' ? 'text-amber-600 dark:text-amber-400' :
+                      'text-red-600 dark:text-red-400'
+                    }`}>{building.healthPercent}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-500 ${
+                        building.status === 'healthy' ? 'bg-emerald-500' :
+                        building.status === 'warning' ? 'bg-amber-500' :
+                        'bg-red-500'
+                      }`}
+                      style={{ width: `${building.healthPercent}%` }}
+                    ></div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -319,39 +313,11 @@ export default function HealthStatsPage() {
               Барилга олдсонгүй
             </h3>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              Барилгын мэдээлэл нэмэх хэрэгтэй байна
+              Галын самбарын мэдээлэл олдсонгүй
             </p>
           </div>
         )}
       </div>
-
-      <style jsx>{`
-        @keyframes pulse-slow {
-          0%, 100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.8;
-          }
-        }
-        
-        @keyframes pulse-slower {
-          0%, 100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.9;
-          }
-        }
-        
-        .animate-pulse-slow {
-          animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        
-        .animate-pulse-slower {
-          animation: pulse-slower 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-      `}</style>
     </div>
   );
 }

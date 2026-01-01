@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, CheckCircle2, Phone, Flame, TrendingUp, AlertCircle } from "lucide-react";
+import { Building2, Phone, Flame } from "lucide-react";
 import Link from "next/link";
 import DashboardNavbar from "@/components/dashboard-navbar";
 import { createClient } from '../../../supabase/client';
@@ -20,23 +20,32 @@ export default function DashboardPage() {
         apartments: [],
         phoneIssues: []
     });
+    const [buildingFirePanelData, setBuildingFirePanelData] = useState<Record<string, {
+        totalDevices: number;
+        normal: number;
+        contaminated: number;
+        commFault: number;
+    }>>({});
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
+
 
     useEffect(() => {
         async function checkAuthAndLoadData() {
             try {
                 const supabase = createClient();
 
-                // Check authentication
+                // Get user (middleware should have already verified auth)
                 const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-                if (authError || !user) {
-                    router.push('/sign-in');
-                    return;
+                if (authError) {
+                    console.error('Auth error:', authError);
                 }
 
-                setUser(user);
+                // Set user if available (middleware handles redirects)
+                if (user) {
+                    setUser(user);
+                }
 
                 // Load dashboard data
                 const [buildingsRes, apartmentsRes, phoneIssuesRes] = await Promise.all([
@@ -50,6 +59,80 @@ export default function DashboardPage() {
                     apartments: apartmentsRes.data || [],
                     phoneIssues: phoneIssuesRes.data || []
                 });
+
+                // Fetch fire panel statistics from all buildings
+                try {
+                    const firePanelRes = await fetch('/api/fire-panel');
+                    const firePanelData = await firePanelRes.json();
+
+                    if (firePanelData.buildings && firePanelData.buildings.length > 0) {
+                        const perBuildingData: Record<string, { totalDevices: number; normal: number; contaminated: number; commFault: number }> = {};
+
+                        const buildingPromises = firePanelData.buildings.map((buildingCode: string) =>
+                            fetch(`/api/fire-panel/${encodeURIComponent(buildingCode)}`).then(res => res.json()).then(data => ({ buildingCode, data }))
+                        );
+
+                        const buildingResults = await Promise.all(buildingPromises);
+
+                        buildingResults.forEach(({ buildingCode, data: buildingData }: { buildingCode: string; data: any }) => {
+                            let bTotal = 0, bNormal = 0, bContaminated = 0, bCommFault = 0;
+
+                            // Count from devices array (same as building page)
+                            if (buildingData.devices && buildingData.devices.length > 0) {
+                                buildingData.devices.forEach((device: any) => {
+                                    // Count detectors
+                                    const detectors = device.detectorStatuses || device.detectorAddresses?.map((addr: number) => ({ address: addr, status: 'ok' })) || [];
+                                    detectors.forEach((d: any) => {
+                                        bTotal++;
+                                        if (d.status === 'problem') bContaminated++;
+                                        else if (d.status === 'warning') bCommFault++;
+                                        else bNormal++;
+                                    });
+
+                                    // Count common area
+                                    const commonArea = device.commonAreaStatuses || device.commonAreaAddresses?.map((addr: number) => ({ address: addr, status: 'ok' })) || [];
+                                    commonArea.forEach((d: any) => {
+                                        bTotal++;
+                                        if (d.status === 'problem') bContaminated++;
+                                        else if (d.status === 'warning') bCommFault++;
+                                        else bNormal++;
+                                    });
+
+                                    // Count bell, mcp, relay
+                                    if (device.bellAddress) {
+                                        bTotal++;
+                                        if (device.bellStatus === 'problem') bContaminated++;
+                                        else if (device.bellStatus === 'warning') bCommFault++;
+                                        else bNormal++;
+                                    }
+                                    if (device.mcpAddress) {
+                                        bTotal++;
+                                        if (device.mcpStatus === 'problem') bContaminated++;
+                                        else if (device.mcpStatus === 'warning') bCommFault++;
+                                        else bNormal++;
+                                    }
+                                    if (device.relayAddress) {
+                                        bTotal++;
+                                        if (device.relayStatus === 'problem') bContaminated++;
+                                        else if (device.relayStatus === 'warning') bCommFault++;
+                                        else bNormal++;
+                                    }
+                                });
+                            }
+
+                            perBuildingData[buildingCode] = {
+                                totalDevices: bTotal,
+                                normal: bNormal,
+                                contaminated: bContaminated,
+                                commFault: bCommFault
+                            };
+                        });
+
+                        setBuildingFirePanelData(perBuildingData);
+                    }
+                } catch (firePanelError) {
+                    console.error('Error loading fire panel data:', firePanelError);
+                }
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
             } finally {
@@ -77,25 +160,6 @@ export default function DashboardPage() {
         );
     }
 
-    const needsCleaningTotal = data.phoneIssues.filter((issue: any) =>
-        issue.issue_type === 'smoke_detector' &&
-        (issue.status === 'цэвэрлэх хэрэгтэй' || issue.status === 'open')
-    ).length;
-
-    const cleanedTotal = data.phoneIssues.filter((issue: any) =>
-        issue.issue_type === 'smoke_detector' && issue.status === 'болсон'
-    ).length;
-
-    const needsHelpTotal = data.phoneIssues.filter((issue: any) =>
-        issue.issue_type === 'smoke_detector' &&
-        issue.status === 'тусламж хэрэгтэй'
-    ).length;
-
-    const totalSmokeDetectorIssues = needsCleaningTotal + cleanedTotal + needsHelpTotal;
-    const completionRate = totalSmokeDetectorIssues > 0
-        ? Math.round((cleanedTotal / totalSmokeDetectorIssues) * 100)
-        : 0;
-
     return (
         <div className="min-h-screen bg-gradient-to-br from-purple-100 via-orange-50 to-pink-100 dark:from-gray-900 dark:via-purple-950 dark:to-gray-900 transition-colors duration-300">
             <DashboardNavbar />
@@ -114,94 +178,15 @@ export default function DashboardPage() {
                         <p className="text-gray-700 dark:text-gray-300 ml-14 font-medium">Бүх барилгын утаа мэдрэгчийн засвар үйлчилгээг хянах</p>
                     </div>
 
-                    {/* Statistics Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-                        <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white/70 dark:bg-gray-800/70 backdrop-blur-md hover:scale-105">
-                            <CardContent className="p-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Цэвэрлэх хэрэгтэй</p>
-                                        <p className="text-3xl font-bold text-orange-500 dark:text-orange-400">{needsCleaningTotal}</p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">айлын SD</p>
-                                    </div>
-                                    <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-full">
-                                        <Flame className="h-8 w-8 text-orange-500 dark:text-orange-400" />
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white/70 dark:bg-gray-800/70 backdrop-blur-md hover:scale-105">
-                            <CardContent className="p-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Цэвэрлэгдсэн</p>
-                                        <p className="text-3xl font-bold text-green-500 dark:text-green-400">{cleanedTotal}</p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">айлын SD</p>
-                                    </div>
-                                    <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
-                                        <CheckCircle2 className="h-8 w-8 text-green-500 dark:text-green-400" />
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white/70 dark:bg-gray-800/70 backdrop-blur-md hover:scale-105">
-                            <CardContent className="p-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Тусламж хэрэгтэй</p>
-                                        <p className="text-3xl font-bold text-red-500 dark:text-red-400">{needsHelpTotal}</p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">айлын SD</p>
-                                    </div>
-                                    <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
-                                        <AlertCircle className="h-8 w-8 text-red-500 dark:text-red-400" />
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white/70 dark:bg-gray-800/70 backdrop-blur-md hover:scale-105">
-                            <CardContent className="p-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Гүйцэтгэл</p>
-                                        <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">{completionRate}%</p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">дууссан</p>
-                                    </div>
-                                    <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-full">
-                                        <TrendingUp className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-
                     {/* Main Content with Sidebar Layout */}
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                         {/* Main Content - Buildings Grid */}
                         <div className="lg:col-span-3">
                             <div className="grid md:grid-cols-2 gap-4 md:gap-6">
                                 {data.buildings.map((building: any, index: any) => {
-                                    const buildingApartments = data.apartments.filter((apt: any) => apt.building_id === building.id);
-                                    const buildingSmokeDetectorIssues = data.phoneIssues.filter((issue: any) =>
-                                        issue.issue_type === 'smoke_detector' &&
-                                        buildingApartments.some((apt: any) => apt.id === issue.apartment_id)
-                                    );
-
-                                    const needsCleaning = buildingSmokeDetectorIssues.filter((issue: any) =>
-                                        issue.status === 'цэвэрлэх хэрэгтэй' || issue.status === 'open'
-                                    ).length;
-
-                                    const cleaned = buildingSmokeDetectorIssues.filter((issue: any) =>
-                                        issue.status === 'болсон'
-                                    ).length;
-
-                                    const commFault = buildingSmokeDetectorIssues.filter((issue: any) =>
-                                        issue.status === 'тусламж хэрэгтэй'
-                                    ).length;
-
-                                    const hasIssues = needsCleaning > 0 || commFault > 0;
+                                    // Get fire panel data for this building (match by building name/code)
+                                    const fpData = buildingFirePanelData[building.name] || null;
+                                    const hasIssues = fpData && (fpData.contaminated > 0 || fpData.commFault > 0);
 
                                     return (
                                         <Link key={building.id} href={`/building/${building.id}`}>
@@ -209,49 +194,42 @@ export default function DashboardPage() {
                                                 style={{ animationDelay: `${index * 50}ms` }}>
                                                 <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-orange-500/5 dark:from-purple-400/10 dark:to-orange-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                                                 <CardHeader className="pb-3 relative">
-                                                    <div className="flex items-center justify-between">
-                                                        <CardTitle className="flex items-center gap-3 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
-                                                            <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-lg group-hover:scale-110 transition-transform">
-                                                                <Building2 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                                                            </div>
+                                                    <CardTitle className="flex items-center gap-3 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                                                        <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-lg group-hover:scale-110 transition-transform">
+                                                            <Building2 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                                                        </div>
+                                                        <div>
                                                             <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{building.name}</span>
-                                                        </CardTitle>
-                                                        <Badge variant="secondary" className="bg-white/50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 font-semibold border border-gray-100 dark:border-gray-600">
-                                                            {buildingApartments.length} байр
-                                                        </Badge>
-                                                    </div>
+                                                            {building.address && (
+                                                                <p className="text-xs text-gray-500 dark:text-gray-400 font-normal mt-0.5">{building.address}</p>
+                                                            )}
+                                                        </div>
+                                                    </CardTitle>
                                                 </CardHeader>
                                                 <CardContent className="relative">
-                                                    {needsCleaning === 0 && cleaned === 0 && commFault === 0 ? (
-                                                        <div className="text-center py-4 text-sm text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-gray-700/50 rounded-lg">
-                                                            <CheckCircle2 className="w-5 h-5 mx-auto mb-1 text-green-500 dark:text-green-400" />
-                                                            SD асуудал байхгүй
+                                                    {fpData ? (
+                                                        <div className="grid grid-cols-4 gap-2">
+                                                            <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-lg p-2 text-center">
+                                                                <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{fpData.totalDevices}</div>
+                                                                <div className="text-[10px] text-blue-600/70 dark:text-blue-400/70 font-medium">Нийт</div>
+                                                            </div>
+                                                            <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-800/30 rounded-lg p-2 text-center">
+                                                                <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{fpData.normal}</div>
+                                                                <div className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70 font-medium">Хэвийн</div>
+                                                            </div>
+                                                            <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/30 rounded-lg p-2 text-center">
+                                                                <div className="text-lg font-bold text-amber-600 dark:text-amber-400">{fpData.contaminated}</div>
+                                                                <div className="text-[10px] text-amber-600/70 dark:text-amber-400/70 font-medium">Бохир</div>
+                                                            </div>
+                                                            <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 rounded-lg p-2 text-center">
+                                                                <div className="text-lg font-bold text-red-600 dark:text-red-400">{fpData.commFault}</div>
+                                                                <div className="text-[10px] text-red-600/70 dark:text-red-400/70 font-medium">Алдаа</div>
+                                                            </div>
                                                         </div>
                                                     ) : (
-                                                        <div className="grid grid-cols-3 gap-2">
-                                                            {needsCleaning > 0 && (
-                                                                <div className="flex flex-col items-center p-2 bg-orange-50 dark:bg-orange-900/30 rounded-lg border border-orange-100 dark:border-orange-800">
-                                                                    <Flame className="w-4 h-4 text-orange-500 dark:text-orange-400 mb-1" />
-                                                                    <span className="text-xs font-medium text-orange-700 dark:text-orange-300 text-center leading-tight">Цэвэрлэх</span>
-                                                                    <span className="font-bold text-orange-600 dark:text-orange-400 text-lg mt-1">{needsCleaning}</span>
-                                                                </div>
-                                                            )}
-
-                                                            {cleaned > 0 && (
-                                                                <div className="flex flex-col items-center p-2 bg-green-50 dark:bg-green-900/30 rounded-lg border border-green-100 dark:border-green-800">
-                                                                    <CheckCircle2 className="w-4 h-4 text-green-500 dark:text-green-400 mb-1" />
-                                                                    <span className="text-xs font-medium text-green-700 dark:text-green-300 text-center leading-tight">Цэвэрлэгдсэн</span>
-                                                                    <span className="font-bold text-green-600 dark:text-green-400 text-lg mt-1">{cleaned}</span>
-                                                                </div>
-                                                            )}
-
-                                                            {commFault > 0 && (
-                                                                <div className="flex flex-col items-center p-2 bg-red-50 dark:bg-red-900/30 rounded-lg border border-red-100 dark:border-red-800">
-                                                                    <Phone className="w-4 h-4 text-red-500 dark:text-red-400 mb-1" />
-                                                                    <span className="text-xs font-medium text-red-700 dark:text-red-300 text-center leading-tight">Тусламж</span>
-                                                                    <span className="font-bold text-red-600 dark:text-red-400 text-lg mt-1">{commFault}</span>
-                                                                </div>
-                                                            )}
+                                                        <div className="text-center py-4 text-sm text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-gray-700/50 rounded-lg">
+                                                            <Building2 className="w-5 h-5 mx-auto mb-1 text-gray-400 dark:text-gray-500" />
+                                                            Мэдээлэл байхгүй
                                                         </div>
                                                     )}
                                                 </CardContent>

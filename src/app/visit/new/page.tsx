@@ -36,8 +36,8 @@ function VisitFormContent() {
         // Load worker from localStorage
         const storedWorker = localStorage.getItem('selectedWorker');
         if (!storedWorker) {
-          alert('Эхлээд ажилчин сонгоно уу');
-          router.push('/worker-select');
+          alert('Эхлээд нэвтэрнэ үү');
+          router.push('/sign-in');
           return;
         }
 
