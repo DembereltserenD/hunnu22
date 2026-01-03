@@ -2,12 +2,37 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Phone, Flame } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Building2, Phone, Flame, AlertCircle, AlertTriangle, Search, Home, Filter } from "lucide-react";
 import Link from "next/link";
 import DashboardNavbar from "@/components/dashboard-navbar";
 import { createClient } from '../../../supabase/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+
+// Types for problem devices
+interface DeviceInfo {
+    address: string;
+    status: 'ok' | 'problem' | 'warning';
+}
+
+interface ProblemApartment {
+    id: string;
+    unit_number: string;
+    floor: number;
+    smoke_detectors: DeviceInfo[];
+    common_area_devices: DeviceInfo[];
+    bell: DeviceInfo | null;
+    has_problem: boolean;
+    has_warning: boolean;
+    problem_count: number;
+    warning_count: number;
+    building: {
+        id: string;
+        name: string;
+    };
+}
 
 export default function DashboardPage() {
     const router = useRouter();
@@ -28,6 +53,16 @@ export default function DashboardPage() {
     }>>({});
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
+
+    // Problem devices state
+    const [problemApartments, setProblemApartments] = useState<ProblemApartment[]>([]);
+    const [xlsmBuildings, setXlsmBuildings] = useState<{ id: string; name: string }[]>([]);
+    const [problemDevicesLoading, setProblemDevicesLoading] = useState(true);
+
+    // Filters for problem devices
+    const [problemBuildingFilter, setProblemBuildingFilter] = useState<string>("all");
+    const [problemStatusFilter, setProblemStatusFilter] = useState<string>("all");
+    const [problemSearchQuery, setProblemSearchQuery] = useState<string>("");
 
 
     useEffect(() => {
@@ -132,6 +167,30 @@ export default function DashboardPage() {
                     }
                 } catch (firePanelError) {
                     console.error('Error loading fire panel data:', firePanelError);
+                }
+
+                // Load problem devices from XLSM
+                try {
+                    setProblemDevicesLoading(true);
+
+                    // Get buildings list
+                    const buildingsRes = await fetch('/api/apartments-xlsm', { method: 'POST' });
+                    const buildingsData = await buildingsRes.json();
+                    setXlsmBuildings(buildingsData.buildings || []);
+
+                    // Get all apartments with problems or warnings
+                    const apartmentsRes = await fetch('/api/apartments-xlsm?limit=1000');
+                    const apartmentsData = await apartmentsRes.json();
+
+                    // Filter only apartments with problems or warnings
+                    const problemOnly = (apartmentsData.data || []).filter(
+                        (apt: ProblemApartment) => apt.has_problem || apt.has_warning
+                    );
+                    setProblemApartments(problemOnly);
+                } catch (problemError) {
+                    console.error('Error loading problem devices:', problemError);
+                } finally {
+                    setProblemDevicesLoading(false);
                 }
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
@@ -337,6 +396,205 @@ export default function DashboardPage() {
                                 </CardContent>
                             </Card>
                         </div>
+                    </div>
+
+                    {/* Problem Devices Section */}
+                    <div className="mt-8">
+                        <Card className="border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-md">
+                            <CardHeader className="border-b border-gray-100 dark:border-gray-700">
+                                <div className="flex flex-col gap-4">
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                                            <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                                                <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                                            </div>
+                                            Асуудалтай төхөөрөмжүүд
+                                        </CardTitle>
+                                        <div className="flex items-center gap-2">
+                                            <Badge variant="destructive" className="text-sm">
+                                                {problemApartments.filter(a => a.has_problem).length} бохир
+                                            </Badge>
+                                            <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 text-sm">
+                                                {problemApartments.filter(a => a.has_warning && !a.has_problem).length} холболт
+                                            </Badge>
+                                        </div>
+                                    </div>
+
+                                    {/* Filters */}
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <div className="relative flex-1">
+                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                                            <Input
+                                                placeholder="Хайх (айл, хаяг)..."
+                                                value={problemSearchQuery}
+                                                onChange={(e) => setProblemSearchQuery(e.target.value)}
+                                                className="pl-10 bg-white dark:bg-gray-700"
+                                            />
+                                        </div>
+                                        <Select value={problemBuildingFilter} onValueChange={setProblemBuildingFilter}>
+                                            <SelectTrigger className="w-full sm:w-40 bg-white dark:bg-gray-700">
+                                                <SelectValue placeholder="Барилга" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">Бүх барилга</SelectItem>
+                                                {xlsmBuildings.map(building => (
+                                                    <SelectItem key={building.id} value={building.id}>
+                                                        {building.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <Select value={problemStatusFilter} onValueChange={setProblemStatusFilter}>
+                                            <SelectTrigger className="w-full sm:w-40 bg-white dark:bg-gray-700">
+                                                <SelectValue placeholder="Төлөв" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">Бүгд</SelectItem>
+                                                <SelectItem value="problem">🔴 Асуудал</SelectItem>
+                                                <SelectItem value="warning">🟡 Анхааруулга</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                {problemDevicesLoading ? (
+                                    <div className="p-8 text-center">
+                                        <div className="relative w-12 h-12 mx-auto mb-3">
+                                            <div className="absolute inset-0 rounded-full border-4 border-gray-200 dark:border-gray-700"></div>
+                                            <div className="absolute inset-0 rounded-full border-4 border-red-500 border-t-transparent animate-spin"></div>
+                                        </div>
+                                        <p className="text-gray-500 dark:text-gray-400">Уншиж байна...</p>
+                                    </div>
+                                ) : (() => {
+                                    // Filter apartments
+                                    let filtered = problemApartments;
+
+                                    if (problemBuildingFilter !== "all") {
+                                        filtered = filtered.filter(apt => apt.building.id === problemBuildingFilter);
+                                    }
+
+                                    if (problemStatusFilter === "problem") {
+                                        filtered = filtered.filter(apt => apt.has_problem);
+                                    } else if (problemStatusFilter === "warning") {
+                                        filtered = filtered.filter(apt => apt.has_warning && !apt.has_problem);
+                                    }
+
+                                    if (problemSearchQuery) {
+                                        const query = problemSearchQuery.toLowerCase();
+                                        filtered = filtered.filter(apt =>
+                                            apt.unit_number.toLowerCase().includes(query) ||
+                                            apt.building.name.toLowerCase().includes(query) ||
+                                            apt.smoke_detectors.some(sd => sd.address.includes(query))
+                                        );
+                                    }
+
+                                    if (filtered.length === 0) {
+                                        return (
+                                            <div className="p-8 text-center">
+                                                <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full w-16 h-16 mx-auto mb-3 flex items-center justify-center">
+                                                    <Flame className="h-8 w-8 text-green-500 dark:text-green-400" />
+                                                </div>
+                                                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                                                    {problemSearchQuery || problemBuildingFilter !== "all" || problemStatusFilter !== "all"
+                                                        ? "Шүүлтүүрт тохирох асуудал олдсонгүй"
+                                                        : "Асуудалтай төхөөрөмж байхгүй"}
+                                                </h3>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">Бүх төхөөрөмж хэвийн ажиллаж байна.</p>
+                                            </div>
+                                        );
+                                    }
+
+                                    // Group by building
+                                    const groupedByBuilding = filtered.reduce((acc, apt) => {
+                                        const buildingName = apt.building.name;
+                                        if (!acc[buildingName]) {
+                                            acc[buildingName] = [];
+                                        }
+                                        acc[buildingName].push(apt);
+                                        return acc;
+                                    }, {} as Record<string, ProblemApartment[]>);
+
+                                    return (
+                                        <div className="divide-y divide-gray-100 dark:divide-gray-700 max-h-[500px] overflow-y-auto">
+                                            {Object.entries(groupedByBuilding).map(([buildingName, apartments]) => (
+                                                <div key={buildingName}>
+                                                    {/* Building header */}
+                                                    <div className="px-4 py-2 bg-gray-50 dark:bg-gray-700/50 sticky top-0 flex items-center gap-2">
+                                                        <Building2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                                        <span className="font-semibold text-gray-900 dark:text-gray-100">{buildingName}</span>
+                                                        <Badge variant="secondary" className="text-xs">{apartments.length} айл</Badge>
+                                                    </div>
+
+                                                    {/* Apartments in this building */}
+                                                    {apartments.map((apt) => {
+                                                        // Get problem and warning devices - exclude common area devices
+                                                        const problemDevices = apt.smoke_detectors.filter(d => d.status === 'problem');
+                                                        const warningDevices = apt.smoke_detectors.filter(d => d.status === 'warning');
+                                                        // Don't include common area devices in problematic devices display
+                                                        // const problemCommon = apt.common_area_devices?.filter(d => d.status === 'problem') || [];
+                                                        // const warningCommon = apt.common_area_devices?.filter(d => d.status === 'warning') || [];
+
+                                                        return (
+                                                            <div key={apt.id} className="p-4 hover:bg-purple-50/50 dark:hover:bg-purple-900/20 transition-colors border-b border-gray-50 dark:border-gray-700/50 last:border-0">
+                                                                <div className="flex items-start gap-3">
+                                                                    <div className={`p-2 rounded-lg ${apt.has_problem ? 'bg-red-100 dark:bg-red-900/30' : 'bg-yellow-100 dark:bg-yellow-900/30'}`}>
+                                                                        {apt.has_problem ? (
+                                                                            <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                                                                        ) : (
+                                                                            <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <div className="flex items-center gap-2 mb-1">
+                                                                            <Home className="h-4 w-4 text-gray-400" />
+                                                                            <span className="font-bold text-gray-900 dark:text-gray-100">{apt.unit_number}</span>
+                                                                            <Badge variant="outline" className="text-xs">{apt.floor}F</Badge>
+                                                                        </div>
+
+                                                                        {/* Problem devices (red) - only smoke detectors, bell, mcp, relay */}
+                                                                        {problemDevices.length > 0 && (
+                                                                            <div className="flex flex-wrap gap-1 mt-2">
+                                                                                <span className="text-xs text-red-600 dark:text-red-400 font-medium">🔴 Асуудал:</span>
+                                                                                {problemDevices.map((d, i) => (
+                                                                                    <span key={`sd-${i}`} className="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded text-xs font-mono">
+                                                                                        SD-{d.address}
+                                                                                    </span>
+                                                                                ))}
+                                                                                {/* Bell, MCP, Relay problems would be shown here if needed */}
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* Warning devices (yellow) - only smoke detectors, bell, mcp, relay */}
+                                                                        {warningDevices.length > 0 && (
+                                                                            <div className="flex flex-wrap gap-1 mt-2">
+                                                                                <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">🟡 Анхааруулга:</span>
+                                                                                {warningDevices.map((d, i) => (
+                                                                                    <span key={`sd-${i}`} className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded text-xs font-mono">
+                                                                                        SD-{d.address}
+                                                                                    </span>
+                                                                                ))}
+                                                                                {/* Bell, MCP, Relay warnings would be shown here if needed */}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <Link
+                                                                        href="/admin-hunnu/apartments"
+                                                                        className="text-purple-600 dark:text-purple-400 hover:underline text-xs"
+                                                                    >
+                                                                        Дэлгэрэнгүй →
+                                                                    </Link>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    );
+                                })()}
+                            </CardContent>
+                        </Card>
                     </div>
                 </div>
             </div>

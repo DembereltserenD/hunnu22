@@ -54,6 +54,7 @@ export interface EntityTableProps<T> {
     className?: string;
     hideTitle?: boolean;
     hideAddButton?: boolean;
+    hideActions?: boolean;
 }
 
 export function EntityTable<T extends { id: string }>({
@@ -74,6 +75,7 @@ export function EntityTable<T extends { id: string }>({
     className,
     hideTitle = false,
     hideAddButton = false,
+    hideActions = false,
 }: EntityTableProps<T>) {
     // Use debounced search hook for better performance
     const {
@@ -240,7 +242,7 @@ export function EntityTable<T extends { id: string }>({
                                                 {column.header}
                                             </TableHead>
                                         ))}
-                                        {(onEdit || onDelete) && (
+                                        {!hideActions && (onEdit || onDelete) && (
                                             <TableHead className="text-right font-medium">Үйлдэл</TableHead>
                                         )}
                                     </TableRow>
@@ -249,7 +251,7 @@ export function EntityTable<T extends { id: string }>({
                                     {filteredData.length === 0 ? (
                                         <TableRow>
                                             <TableCell
-                                                colSpan={columns.length + (onEdit || onDelete ? 1 : 0)}
+                                                colSpan={columns.length + (!hideActions && (onEdit || onDelete) ? 1 : 0)}
                                                 className="text-center py-8 text-muted-foreground"
                                             >
                                                 {emptyMessage}
@@ -266,7 +268,7 @@ export function EntityTable<T extends { id: string }>({
                                                         </TableCell>
                                                     );
                                                 })}
-                                                {(onEdit || onDelete) && (
+                                                {!hideActions && (onEdit || onDelete) && (
                                                     <TableCell className="text-right">
                                                         <div className="flex items-center justify-end gap-2">
                                                             {onEdit && (
