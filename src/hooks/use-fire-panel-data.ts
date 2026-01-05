@@ -69,7 +69,10 @@ interface ProcessedFirePanelData {
   };
 }
 
-export function useFirePanelData(firePanelData: FirePanelData | null): ProcessedFirePanelData {
+export function useFirePanelData(
+  firePanelData: FirePanelData | null,
+  detectorOverrides: Record<string, DeviceStatus> = {}
+): ProcessedFirePanelData {
   return useMemo(() => {
     if (!firePanelData?.devices) {
       return {
@@ -80,22 +83,52 @@ export function useFirePanelData(firePanelData: FirePanelData | null): Processed
       };
     }
 
+    // Helper to apply overrides to device status (includes deviceType in key)
+    type DeviceType = 'detector' | 'commonArea' | 'bell' | 'mcp' | 'relay';
+    const applyOverride = (deviceType: DeviceType, unitNumber: string, address: number, originalStatus: DeviceStatus): DeviceStatus => {
+      const overrideKey = `${deviceType}-${unitNumber}-${address}`;
+      return detectorOverrides[overrideKey] || originalStatus;
+    };
+
     // Process unit rows
     const unitRows: ProcessedUnitData[] = firePanelData.devices.map(device => {
-      const detectors = device.detectorStatuses?.length > 0 
-        ? device.detectorStatuses 
-        : device.detectorAddresses.map(addr => ({ address: addr, status: 'ok' as DeviceStatus }));
-      
-      const commonArea = device.commonAreaStatuses?.length > 0 
-        ? device.commonAreaStatuses 
-        : device.commonAreaAddresses.map(addr => ({ address: addr, status: 'ok' as DeviceStatus }));
+      const detectors = device.detectorStatuses?.length > 0
+        ? device.detectorStatuses.map(d => ({
+            address: d.address,
+            status: applyOverride('detector', device.unit, d.address, d.status)
+          }))
+        : device.detectorAddresses.map(addr => ({
+            address: addr,
+            status: applyOverride('detector', device.unit, addr, 'ok' as DeviceStatus)
+          }));
+
+      const commonArea = device.commonAreaStatuses?.length > 0
+        ? device.commonAreaStatuses.map(d => ({
+            address: d.address,
+            status: applyOverride('commonArea', device.unit, d.address, d.status)
+          }))
+        : device.commonAreaAddresses.map(addr => ({
+            address: addr,
+            status: applyOverride('commonArea', device.unit, addr, 'ok' as DeviceStatus)
+          }));
+
+      // Apply overrides to single devices
+      const bellStatus = device.bellAddress
+        ? applyOverride('bell', device.unit, device.bellAddress, device.bellStatus || 'ok')
+        : device.bellStatus;
+      const mcpStatus = device.mcpAddress
+        ? applyOverride('mcp', device.unit, device.mcpAddress, device.mcpStatus || 'ok')
+        : device.mcpStatus;
+      const relayStatus = device.relayAddress
+        ? applyOverride('relay', device.unit, device.relayAddress, device.relayStatus || 'ok')
+        : device.relayStatus;
 
       const hasProblems = (
         detectors.some(d => d.status !== 'ok') ||
         commonArea.some(d => d.status !== 'ok') ||
-        (device.bellStatus && device.bellStatus !== 'ok') ||
-        (device.mcpStatus && device.mcpStatus !== 'ok') ||
-        (device.relayStatus && device.relayStatus !== 'ok')
+        (bellStatus && bellStatus !== 'ok') ||
+        (mcpStatus && mcpStatus !== 'ok') ||
+        (relayStatus && relayStatus !== 'ok')
       ) || false;
 
       return {
@@ -104,9 +137,9 @@ export function useFirePanelData(firePanelData: FirePanelData | null): Processed
         loop: device.loop || 'Unknown',
         detectors,
         commonArea,
-        bell: device.bellAddress ? { address: device.bellAddress, status: device.bellStatus || 'ok' } : null,
-        mcp: device.mcpAddress ? { address: device.mcpAddress, status: device.mcpStatus || 'ok' } : null,
-        relay: device.relayAddress ? { address: device.relayAddress, status: device.relayStatus || 'ok' } : null,
+        bell: device.bellAddress ? { address: device.bellAddress, status: bellStatus || 'ok' } : null,
+        mcp: device.mcpAddress ? { address: device.mcpAddress, status: mcpStatus || 'ok' } : null,
+        relay: device.relayAddress ? { address: device.relayAddress, status: relayStatus || 'ok' } : null,
         hasProblems
       };
     });
@@ -207,5 +240,5 @@ export function useFirePanelData(firePanelData: FirePanelData | null): Processed
       stats,
       problemStats: { problems, warnings, ok, total }
     };
-  }, [firePanelData]);
+  }, [firePanelData, detectorOverrides]);
 }

@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { DeviceGroup } from './device-group';
 import { SingleDevice } from './single-device';
-import { DeviceStatus } from './device-status-badge';
+import { DeviceStatus, DeviceType, DeviceHistoryEntry } from './device-status-badge';
 
 interface DeviceAddress {
     address: number;
@@ -24,9 +24,19 @@ interface FirePanelDevice {
 
 interface FirePanelTableProps {
     units: FirePanelDevice[];
+    isAdmin?: boolean;
+    onDeviceToggle?: (unitNumber: string, address: number, deviceType: DeviceType, currentStatus: DeviceStatus) => void;
+    history?: DeviceHistoryEntry[];
+    buildingName?: string;
 }
 
-export function FirePanelTable({ units }: FirePanelTableProps) {
+export function FirePanelTable({
+    units,
+    isAdmin = false,
+    onDeviceToggle,
+    history = [],
+    buildingName,
+}: FirePanelTableProps) {
     if (units.length === 0) {
         return (
             <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
@@ -88,27 +98,76 @@ export function FirePanelTable({ units }: FirePanelTableProps) {
                                 </span>
                             </td>
                             <td className="px-3 py-2">
-                                <DeviceGroup devices={unit.detectors} />
+                                <DeviceGroup
+                                    devices={unit.detectors}
+                                    isAdmin={isAdmin}
+                                    onToggle={onDeviceToggle
+                                        ? (address, status) => onDeviceToggle(unit.unit, address, 'detector', status)
+                                        : undefined
+                                    }
+                                    unitNumber={unit.unit}
+                                    deviceType="detector"
+                                    history={history}
+                                    buildingName={buildingName}
+                                />
                             </td>
                             <td className="px-3 py-2">
-                                <DeviceGroup devices={unit.commonArea} />
+                                <DeviceGroup
+                                    devices={unit.commonArea}
+                                    isAdmin={isAdmin}
+                                    onToggle={onDeviceToggle
+                                        ? (address, status) => onDeviceToggle(unit.unit, address, 'commonArea', status)
+                                        : undefined
+                                    }
+                                    unitNumber={unit.unit}
+                                    deviceType="commonArea"
+                                    history={history}
+                                    buildingName={buildingName}
+                                />
                             </td>
                             <td className="px-3 py-2">
                                 <SingleDevice
                                     address={unit.bell?.address || null}
                                     status={unit.bell?.status || null}
+                                    isAdmin={isAdmin}
+                                    onToggle={onDeviceToggle && unit.bell
+                                        ? (address, status) => onDeviceToggle(unit.unit, address, 'bell', status)
+                                        : undefined
+                                    }
+                                    unitNumber={unit.unit}
+                                    deviceType="bell"
+                                    history={history}
+                                    buildingName={buildingName}
                                 />
                             </td>
                             <td className="px-3 py-2">
                                 <SingleDevice
                                     address={unit.mcp?.address || null}
                                     status={unit.mcp?.status || null}
+                                    isAdmin={isAdmin}
+                                    onToggle={onDeviceToggle && unit.mcp
+                                        ? (address, status) => onDeviceToggle(unit.unit, address, 'mcp', status)
+                                        : undefined
+                                    }
+                                    unitNumber={unit.unit}
+                                    deviceType="mcp"
+                                    history={history}
+                                    buildingName={buildingName}
                                 />
                             </td>
                             <td className="px-3 py-2">
                                 <SingleDevice
                                     address={unit.relay?.address || null}
                                     status={unit.relay?.status || null}
+                                    isAdmin={isAdmin}
+                                    onToggle={onDeviceToggle && unit.relay
+                                        ? (address, status) => onDeviceToggle(unit.unit, address, 'relay', status)
+                                        : undefined
+                                    }
+                                    unitNumber={unit.unit}
+                                    deviceType="relay"
+                                    history={history}
+                                    buildingName={buildingName}
                                 />
                             </td>
                             <td className="px-3 py-2">

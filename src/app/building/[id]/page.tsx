@@ -3,14 +3,16 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle2, Phone, Flame, Home, ChevronUp, ChevronDown, AlertTriangle, AlertCircle } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowLeft, CheckCircle2, Phone, Flame, Home, ChevronUp, ChevronDown, AlertTriangle, AlertCircle, Clock } from "lucide-react";
 import { createClient } from '../../../../supabase/client';
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import DashboardNavbar from "@/components/dashboard-navbar";
 import { FirePanelTable } from "@/components/building/fire-panel-table";
 import { ApartmentDeviceInfo } from "@/components/building/apartment-device-info";
+import { DetectorHistory } from "@/components/building/detector-history";
 import { useFirePanelData } from "@/hooks/use-fire-panel-data";
 
 type DeviceStatus = 'ok' | 'problem' | 'warning';
@@ -65,13 +67,18 @@ export default function BuildingDetailPage() {
   const [mounted, setMounted] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedLoop, setSelectedLoop] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [detectorOverrides, setDetectorOverrides] = useState<Record<string, DeviceStatus>>({});
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyData, setHistoryData] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const params = useParams();
   const buildingId = params.id as string;
 
   const ITEMS_PER_PAGE = 20;
 
   // Process fire panel data using the smart hook
-  const { unitRows, availableLoops, stats: firePanelStats, problemStats } = useFirePanelData(firePanelData);
+  const { unitRows, availableLoops, stats: firePanelStats, problemStats } = useFirePanelData(firePanelData, detectorOverrides);
 
   useEffect(() => {
     setMounted(true);
@@ -172,6 +179,98 @@ export default function BuildingDetailPage() {
 
     loadData();
   }, [buildingId]);
+
+  // Check if user is admin and fetch overrides
+  useEffect(() => {
+    async function checkAdminAndLoadOverrides() {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
+          // Check if user is admin by email
+          const { data: userData } = await supabase
+            .from('users')
+            .select('role')
+            .eq('email', user.email)
+            .single();
+
+          console.log('Admin check:', { email: user.email, role: userData?.role });
+          setIsAdmin(userData?.role === 'admin');
+        }
+
+        // Fetch detector overrides for this building
+        const response = await fetch(`/api/detector-status?buildingId=${buildingId}`);
+        if (response.ok) {
+          const { overrides } = await response.json();
+          setDetectorOverrides(overrides || {});
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+      }
+    }
+
+    checkAdminAndLoadOverrides();
+  }, [buildingId]);
+
+  // Fetch history data
+  const fetchHistory = useCallback(async () => {
+    if (!isAdmin) return;
+    setHistoryLoading(true);
+    try {
+      const response = await fetch(`/api/detector-status?buildingId=${buildingId}&history=true`);
+      if (response.ok) {
+        const { history } = await response.json();
+        setHistoryData(history || []);
+      }
+    } catch (error) {
+      console.error('Error fetching history:', error);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [buildingId, isAdmin]);
+
+  // Always fetch history when user is admin (for tooltips)
+  useEffect(() => {
+    if (isAdmin) {
+      fetchHistory();
+    }
+  }, [isAdmin, fetchHistory]);
+
+  // Handle device status toggle (for all device types)
+  type DeviceType = 'detector' | 'commonArea' | 'bell' | 'mcp' | 'relay';
+
+  const handleDeviceToggle = async (unitNumber: string, address: number, deviceType: DeviceType, currentStatus: DeviceStatus) => {
+    try {
+      const response = await fetch('/api/detector-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          buildingId,
+          unitNumber,
+          detectorAddress: address,
+          deviceType,
+          currentStatus,
+        }),
+      });
+
+      if (response.ok) {
+        const { newStatus } = await response.json();
+        // Update local overrides state with deviceType in key
+        setDetectorOverrides(prev => ({
+          ...prev,
+          [`${deviceType}-${unitNumber}-${address}`]: newStatus,
+        }));
+        // Always refresh history for tooltips
+        fetchHistory();
+      } else {
+        const error = await response.json();
+        console.error('Failed to toggle device status:', error.error);
+      }
+    } catch (error) {
+      console.error('Error toggling device status:', error);
+    }
+  };
 
   // Filter unit rows by selected loop
   const filteredUnitRows = useMemo(() => {
@@ -361,7 +460,45 @@ export default function BuildingDetailPage() {
                     )}
 
                     {/* Device Table - Smart Component */}
-                    <FirePanelTable units={paginatedUnits} />
+                    <FirePanelTable
+                      units={paginatedUnits}
+                      isAdmin={isAdmin}
+                      onDeviceToggle={handleDeviceToggle}
+                      history={historyData}
+                      buildingName={data.building?.name}
+                    />
+
+                    {/* Admin: Show History Checkbox */}
+                    {isAdmin && (
+                      <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                        <div className="flex items-center gap-3 mb-4">
+                          <Checkbox
+                            id="show-history"
+                            checked={showHistory}
+                            onCheckedChange={(checked) => setShowHistory(checked === true)}
+                          />
+                          <label
+                            htmlFor="show-history"
+                            className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer"
+                          >
+                            <Clock className="w-4 h-4" />
+                            Өөрчлөлтийн түүх харах
+                          </label>
+                        </div>
+
+                        {showHistory && (
+                          <div>
+                            {historyLoading ? (
+                              <div className="text-center py-4 text-slate-500">
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                              </div>
+                            ) : (
+                              <DetectorHistory history={historyData} />
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Pagination */}
                     <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">

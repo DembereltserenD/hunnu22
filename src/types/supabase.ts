@@ -118,6 +118,111 @@ export type Database = {
         }
         Relationships: []
       }
+      detector_status_overrides: {
+        Row: {
+          id: string
+          building_id: string
+          unit_number: string
+          detector_address: number
+          device_type: 'detector' | 'commonArea' | 'bell' | 'mcp' | 'relay'
+          status: 'ok' | 'problem' | 'warning'
+          updated_by: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          building_id: string
+          unit_number: string
+          detector_address: number
+          device_type?: 'detector' | 'commonArea' | 'bell' | 'mcp' | 'relay'
+          status: 'ok' | 'problem' | 'warning'
+          updated_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          building_id?: string
+          unit_number?: string
+          detector_address?: number
+          device_type?: 'detector' | 'commonArea' | 'bell' | 'mcp' | 'relay'
+          status?: 'ok' | 'problem' | 'warning'
+          updated_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "detector_status_overrides_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "detector_status_overrides_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      detector_status_history: {
+        Row: {
+          id: string
+          building_id: string
+          unit_number: string
+          detector_address: number
+          device_type: 'detector' | 'commonArea' | 'bell' | 'mcp' | 'relay'
+          old_status: 'ok' | 'problem' | 'warning' | null
+          new_status: 'ok' | 'problem' | 'warning'
+          changed_by: string | null
+          changed_by_name: string | null
+          changed_at: string | null
+        }
+        Insert: {
+          id?: string
+          building_id: string
+          unit_number: string
+          detector_address: number
+          device_type?: 'detector' | 'commonArea' | 'bell' | 'mcp' | 'relay'
+          old_status?: 'ok' | 'problem' | 'warning' | null
+          new_status: 'ok' | 'problem' | 'warning'
+          changed_by?: string | null
+          changed_by_name?: string | null
+          changed_at?: string | null
+        }
+        Update: {
+          id?: string
+          building_id?: string
+          unit_number?: string
+          detector_address?: number
+          device_type?: 'detector' | 'commonArea' | 'bell' | 'mcp' | 'relay'
+          old_status?: 'ok' | 'problem' | 'warning' | null
+          new_status?: 'ok' | 'problem' | 'warning'
+          changed_by?: string | null
+          changed_by_name?: string | null
+          changed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "detector_status_history_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "detector_status_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       users: {
         Row: {
           avatar_url: string | null
@@ -127,6 +232,7 @@ export type Database = {
           id: string
           image: string | null
           name: string | null
+          role: 'user' | 'admin'
           token_identifier: string
           updated_at: string | null
           user_id: string | null
@@ -139,6 +245,7 @@ export type Database = {
           id: string
           image?: string | null
           name?: string | null
+          role?: 'user' | 'admin'
           token_identifier: string
           updated_at?: string | null
           user_id?: string | null
@@ -151,6 +258,7 @@ export type Database = {
           id?: string
           image?: string | null
           name?: string | null
+          role?: 'user' | 'admin'
           token_identifier?: string
           updated_at?: string | null
           user_id?: string | null
