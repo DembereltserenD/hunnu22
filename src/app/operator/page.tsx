@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
+import { createClient } from "../../../supabase/client";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
