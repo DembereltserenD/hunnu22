@@ -13,12 +13,15 @@ const STATUS_CYCLE: Record<DetectorStatus, DetectorStatus> = {
   warning: 'problem',
 };
 
+const VALID_STATUSES: DetectorStatus[] = ['ok', 'problem', 'warning'];
+
 interface ToggleRequest {
   buildingId: string;
   unitNumber: string;
   detectorAddress: number;
   deviceType: DeviceType;
   currentStatus: DetectorStatus;
+  newStatus?: DetectorStatus;
 }
 
 // POST: Toggle detector status (admin only)
@@ -35,16 +38,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user is admin and get user info (by email)
+    // Get user info (by email)
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('id, role, full_name, name, email')
       .eq('email', user.email)
       .single();
 
-    if (userError || !userData || userData.role !== 'admin') {
+    if (userError || !userData) {
       return NextResponse.json(
-        { error: 'Only admins can toggle detector status' },
+        { error: 'User profile not found' },
         { status: 403 }
       );
     }
@@ -53,7 +56,7 @@ export async function POST(request: NextRequest) {
     const changedByName = userData.full_name || userData.name || userData.email || 'Admin';
 
     const body: ToggleRequest = await request.json();
-    const { buildingId, unitNumber, detectorAddress, deviceType = 'detector', currentStatus } = body;
+    const { buildingId, unitNumber, detectorAddress, deviceType = 'detector', currentStatus, newStatus } = body;
 
     if (!buildingId || !unitNumber || detectorAddress === undefined || !currentStatus) {
       return NextResponse.json(
@@ -62,8 +65,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate next status in cycle
-    const newStatus = STATUS_CYCLE[currentStatus];
+    if (!VALID_STATUSES.includes(currentStatus)) {
+      return NextResponse.json(
+        { error: 'Invalid current status' },
+        { status: 400 }
+      );
+    }
+
+    if (newStatus && !VALID_STATUSES.includes(newStatus)) {
+      return NextResponse.json(
+        { error: 'Invalid new status' },
+        { status: 400 }
+      );
+    }
+
+    // Calculate next status in cycle if not provided
+    const nextStatus = newStatus || STATUS_CYCLE[currentStatus];
 
     // Check if override already exists (including device type)
     const { data: existingOverride } = await supabase
@@ -80,7 +97,7 @@ export async function POST(request: NextRequest) {
       const { error: updateError } = await supabase
         .from('detector_status_overrides')
         .update({
-          status: newStatus,
+          status: nextStatus,
           updated_by: userData.id,
           updated_at: new Date().toISOString(),
         })
@@ -102,7 +119,7 @@ export async function POST(request: NextRequest) {
           unit_number: unitNumber,
           detector_address: detectorAddress,
           device_type: deviceType,
-          status: newStatus,
+          status: nextStatus,
           updated_by: userData.id,
         });
 
@@ -124,7 +141,7 @@ export async function POST(request: NextRequest) {
         detector_address: detectorAddress,
         device_type: deviceType,
         old_status: currentStatus,
-        new_status: newStatus,
+        new_status: nextStatus,
         changed_by: userData.id,
         changed_by_name: changedByName,
       });
@@ -136,9 +153,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      newStatus,
+      newStatus: nextStatus,
       deviceType,
-      message: `Device ${detectorAddress} (${deviceType}) status changed to ${newStatus}`,
+      message: `Device ${detectorAddress} (${deviceType}) status changed to ${nextStatus}`,
     });
   } catch (error) {
     console.error('Error toggling detector status:', error);

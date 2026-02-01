@@ -68,6 +68,11 @@ export default function DashboardNavbar() {
               Хүсэлт илгээх
             </Button>
           </Link>
+          <Link href="/operator">
+            <Button variant="outline" size="sm" className="border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20">
+              {"\u041E\u043F\u0435\u0440\u0430\u0442\u043E\u0440"}
+            </Button>
+          </Link>
           <Link href="/worker-dashboard">
             <Button variant="outline" size="sm" className="border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20">
               Ажлын самбар
@@ -108,6 +113,11 @@ export default function DashboardNavbar() {
                   <Button variant="outline" className="w-full justify-start text-base h-12 gap-2 border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20">
                     <MessageSquare className="h-5 w-5" />
                     Хүсэлт илгээх
+                  </Button>
+                </Link>
+                <Link href="/operator" onClick={() => setOpen(false)}>
+                  <Button variant="outline" className="w-full justify-start text-base h-12 border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20">
+                    {"\u041E\u043F\u0435\u0440\u0430\u0442\u043E\u0440"}
                   </Button>
                 </Link>
                 <Link href="/worker-dashboard" onClick={() => setOpen(false)}>

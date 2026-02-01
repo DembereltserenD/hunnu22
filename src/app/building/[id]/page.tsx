@@ -237,11 +237,103 @@ export default function BuildingDetailPage() {
     }
   }, [isAdmin, fetchHistory]);
 
-  // Handle device status toggle (for all device types)
+  // Handle device status change (for all device types)
   type DeviceType = 'detector' | 'commonArea' | 'bell' | 'mcp' | 'relay';
 
-  const handleDeviceToggle = async (unitNumber: string, address: number, deviceType: DeviceType, currentStatus: DeviceStatus) => {
+  const PENDING_UPDATES_KEY = 'pending_device_status_updates';
+
+  const enqueuePendingUpdate = (payload: {
+    buildingId: string;
+    unitNumber: string;
+    detectorAddress: number;
+    deviceType: DeviceType;
+    currentStatus: DeviceStatus;
+    newStatus: DeviceStatus;
+  }) => {
+    if (typeof window === 'undefined') return;
     try {
+      const raw = window.localStorage.getItem(PENDING_UPDATES_KEY);
+      const existing = raw ? JSON.parse(raw) : [];
+      const next = Array.isArray(existing) ? [payload, ...existing] : [payload];
+      window.localStorage.setItem(PENDING_UPDATES_KEY, JSON.stringify(next));
+    } catch (error) {
+      console.error('Failed to enqueue offline update:', error);
+    }
+  };
+
+  const flushPendingUpdates = async () => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = window.localStorage.getItem(PENDING_UPDATES_KEY);
+      const pending = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(pending) || pending.length === 0) return;
+
+      const remaining: any[] = [];
+      for (const item of pending) {
+        try {
+          const response = await fetch('/api/detector-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(item),
+          });
+          if (!response.ok) {
+            remaining.push(item);
+          } else {
+            const { newStatus } = await response.json();
+            setDetectorOverrides(prev => ({
+              ...prev,
+              [`${item.deviceType}-${item.unitNumber}-${item.detectorAddress}`]: newStatus,
+            }));
+          }
+        } catch {
+          remaining.push(item);
+        }
+      }
+      window.localStorage.setItem(PENDING_UPDATES_KEY, JSON.stringify(remaining));
+    } catch (error) {
+      console.error('Failed to flush offline updates:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleOnline = () => {
+      flushPendingUpdates();
+    };
+    window.addEventListener('online', handleOnline);
+    // Try once on load in case we already have a connection
+    if (navigator.onLine) {
+      flushPendingUpdates();
+    }
+    return () => window.removeEventListener('online', handleOnline);
+  }, []);
+
+  const handleDeviceStatusChange = async (
+    unitNumber: string,
+    address: number,
+    deviceType: DeviceType,
+    currentStatus: DeviceStatus,
+    nextStatus: DeviceStatus,
+  ) => {
+    // Optimistic update for offline-first experience
+    setDetectorOverrides(prev => ({
+      ...prev,
+      [`${deviceType}-${unitNumber}-${address}`]: nextStatus,
+    }));
+
+    try {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        enqueuePendingUpdate({
+          buildingId,
+          unitNumber,
+          detectorAddress: address,
+          deviceType,
+          currentStatus,
+          newStatus: nextStatus,
+        });
+        return;
+      }
+
       const response = await fetch('/api/detector-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -251,12 +343,13 @@ export default function BuildingDetailPage() {
           detectorAddress: address,
           deviceType,
           currentStatus,
+          newStatus: nextStatus,
         }),
       });
 
       if (response.ok) {
         const { newStatus } = await response.json();
-        // Update local overrides state with deviceType in key
+        // Update local overrides state with deviceType in key (ensure server truth)
         setDetectorOverrides(prev => ({
           ...prev,
           [`${deviceType}-${unitNumber}-${address}`]: newStatus,
@@ -265,10 +358,26 @@ export default function BuildingDetailPage() {
         fetchHistory();
       } else {
         const error = await response.json();
-        console.error('Failed to toggle device status:', error.error);
+        console.error('Failed to change device status:', error.error);
+        enqueuePendingUpdate({
+          buildingId,
+          unitNumber,
+          detectorAddress: address,
+          deviceType,
+          currentStatus,
+          newStatus: nextStatus,
+        });
       }
     } catch (error) {
-      console.error('Error toggling device status:', error);
+      console.error('Error changing device status:', error);
+      enqueuePendingUpdate({
+        buildingId,
+        unitNumber,
+        detectorAddress: address,
+        deviceType,
+        currentStatus,
+        newStatus: nextStatus,
+      });
     }
   };
 
@@ -463,7 +572,7 @@ export default function BuildingDetailPage() {
                     <FirePanelTable
                       units={paginatedUnits}
                       isAdmin={isAdmin}
-                      onDeviceToggle={handleDeviceToggle}
+                      onDeviceStatusChange={handleDeviceStatusChange}
                       history={historyData}
                       buildingName={data.building?.name}
                     />

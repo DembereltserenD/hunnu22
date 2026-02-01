@@ -25,7 +25,7 @@ interface FirePanelDevice {
 interface FirePanelTableProps {
     units: FirePanelDevice[];
     isAdmin?: boolean;
-    onDeviceToggle?: (unitNumber: string, address: number, deviceType: DeviceType, currentStatus: DeviceStatus) => void;
+    onDeviceStatusChange?: (unitNumber: string, address: number, deviceType: DeviceType, currentStatus: DeviceStatus, nextStatus: DeviceStatus) => void;
     history?: DeviceHistoryEntry[];
     buildingName?: string;
 }
@@ -33,7 +33,7 @@ interface FirePanelTableProps {
 export function FirePanelTable({
     units,
     isAdmin = false,
-    onDeviceToggle,
+    onDeviceStatusChange,
     history = [],
     buildingName,
 }: FirePanelTableProps) {
@@ -101,8 +101,8 @@ export function FirePanelTable({
                                 <DeviceGroup
                                     devices={unit.detectors}
                                     isAdmin={isAdmin}
-                                    onToggle={onDeviceToggle
-                                        ? (address, status) => onDeviceToggle(unit.unit, address, 'detector', status)
+                                    onStatusChange={onDeviceStatusChange
+                                        ? (address, status, nextStatus) => onDeviceStatusChange(unit.unit, address, 'detector', status, nextStatus)
                                         : undefined
                                     }
                                     unitNumber={unit.unit}
@@ -115,8 +115,8 @@ export function FirePanelTable({
                                 <DeviceGroup
                                     devices={unit.commonArea}
                                     isAdmin={isAdmin}
-                                    onToggle={onDeviceToggle
-                                        ? (address, status) => onDeviceToggle(unit.unit, address, 'commonArea', status)
+                                    onStatusChange={onDeviceStatusChange
+                                        ? (address, status, nextStatus) => onDeviceStatusChange(unit.unit, address, 'commonArea', status, nextStatus)
                                         : undefined
                                     }
                                     unitNumber={unit.unit}
@@ -130,8 +130,8 @@ export function FirePanelTable({
                                     address={unit.bell?.address || null}
                                     status={unit.bell?.status || null}
                                     isAdmin={isAdmin}
-                                    onToggle={onDeviceToggle && unit.bell
-                                        ? (address, status) => onDeviceToggle(unit.unit, address, 'bell', status)
+                                    onStatusChange={onDeviceStatusChange && unit.bell
+                                        ? (address, status, nextStatus) => onDeviceStatusChange(unit.unit, address, 'bell', status, nextStatus)
                                         : undefined
                                     }
                                     unitNumber={unit.unit}
@@ -145,8 +145,8 @@ export function FirePanelTable({
                                     address={unit.mcp?.address || null}
                                     status={unit.mcp?.status || null}
                                     isAdmin={isAdmin}
-                                    onToggle={onDeviceToggle && unit.mcp
-                                        ? (address, status) => onDeviceToggle(unit.unit, address, 'mcp', status)
+                                    onStatusChange={onDeviceStatusChange && unit.mcp
+                                        ? (address, status, nextStatus) => onDeviceStatusChange(unit.unit, address, 'mcp', status, nextStatus)
                                         : undefined
                                     }
                                     unitNumber={unit.unit}
@@ -160,8 +160,8 @@ export function FirePanelTable({
                                     address={unit.relay?.address || null}
                                     status={unit.relay?.status || null}
                                     isAdmin={isAdmin}
-                                    onToggle={onDeviceToggle && unit.relay
-                                        ? (address, status) => onDeviceToggle(unit.unit, address, 'relay', status)
+                                    onStatusChange={onDeviceStatusChange && unit.relay
+                                        ? (address, status, nextStatus) => onDeviceStatusChange(unit.unit, address, 'relay', status, nextStatus)
                                         : undefined
                                     }
                                     unitNumber={unit.unit}

@@ -7,7 +7,7 @@ interface SingleDeviceProps {
     status: DeviceStatus | null;
     emptyText?: string;
     isAdmin?: boolean;
-    onToggle?: (address: number, currentStatus: DeviceStatus) => void;
+    onStatusChange?: (address: number, currentStatus: DeviceStatus, nextStatus: DeviceStatus) => void;
     unitNumber?: string;
     deviceType?: DeviceType;
     history?: DeviceHistoryEntry[];
@@ -19,7 +19,7 @@ export function SingleDevice({
     status,
     emptyText = "-",
     isAdmin = false,
-    onToggle,
+    onStatusChange,
     unitNumber,
     deviceType = 'detector',
     history = [],
@@ -34,7 +34,7 @@ export function SingleDevice({
             address={address}
             status={status || 'ok'}
             isAdmin={isAdmin}
-            onToggle={onToggle}
+            onStatusChange={onStatusChange}
             unitNumber={unitNumber}
             deviceType={deviceType}
             history={history}

@@ -11,7 +11,7 @@ interface DeviceGroupProps {
     devices: DeviceAddress[];
     emptyText?: string;
     isAdmin?: boolean;
-    onToggle?: (address: number, currentStatus: DeviceStatus) => void;
+    onStatusChange?: (address: number, currentStatus: DeviceStatus, nextStatus: DeviceStatus) => void;
     unitNumber?: string;
     deviceType?: DeviceType;
     history?: DeviceHistoryEntry[];
@@ -22,7 +22,7 @@ export function DeviceGroup({
     devices,
     emptyText = "-",
     isAdmin = false,
-    onToggle,
+    onStatusChange,
     unitNumber,
     deviceType = 'detector',
     history = [],
@@ -40,7 +40,7 @@ export function DeviceGroup({
                     address={device.address}
                     status={device.status}
                     isAdmin={isAdmin}
-                    onToggle={onToggle}
+                    onStatusChange={onStatusChange}
                     unitNumber={unitNumber}
                     deviceType={deviceType}
                     history={history}

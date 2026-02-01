@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -58,31 +58,92 @@ export default function DashboardPage() {
     const [problemApartments, setProblemApartments] = useState<ProblemApartment[]>([]);
     const [xlsmBuildings, setXlsmBuildings] = useState<{ id: string; name: string }[]>([]);
     const [problemDevicesLoading, setProblemDevicesLoading] = useState(true);
+    const [visitSchedules, setVisitSchedules] = useState<any[]>([]);
+    const [visitSchedulesLoading, setVisitSchedulesLoading] = useState(true);
+    const [visitStatusFilter, setVisitStatusFilter] = useState<string>("all");
+    const [visitBuildingFilter, setVisitBuildingFilter] = useState<string>("all");
+    const [visitFromDate, setVisitFromDate] = useState<string>("");
+    const [visitToDate, setVisitToDate] = useState<string>("");
+    const [visitSearchQuery, setVisitSearchQuery] = useState<string>("");
+    const [editingVisitId, setEditingVisitId] = useState<string | null>(null);
+    const [editBuildingName, setEditBuildingName] = useState<string>("");
+    const [editUnitNumber, setEditUnitNumber] = useState<string>("");
+    const [editDate, setEditDate] = useState<string>("");
+    const [editTime, setEditTime] = useState<string>("");
+    const [editNote, setEditNote] = useState<string>("");
 
     // Filters for problem devices
     const [problemBuildingFilter, setProblemBuildingFilter] = useState<string>("all");
     const [problemStatusFilter, setProblemStatusFilter] = useState<string>("all");
     const [problemSearchQuery, setProblemSearchQuery] = useState<string>("");
 
+    const VISIT_STATUS_OPTIONS = [
+        { value: "not_visited", label: "Ороогүй" },
+        { value: "visited", label: "Орсон" },
+        { value: "no_answer", label: "Байхгүй" },
+        { value: "issue", label: "Асуудалтай" },
+    ];
+
+    const STATUS_STYLES: Record<string, string> = {
+        not_visited: "bg-slate-100 text-slate-700 border-slate-200",
+        visited: "bg-emerald-100 text-emerald-700 border-emerald-200",
+        no_answer: "bg-amber-100 text-amber-700 border-amber-200",
+        issue: "bg-red-100 text-red-700 border-red-200",
+    };
+
+    const filteredVisitSchedules = visitSchedules.filter((schedule: any) => {
+        const statusValue = schedule.status || "not_visited";
+        const buildingName = schedule.building_name
+            || data.buildings.find((b: any) => b.id === schedule.building_id)?.name
+            || "-";
+
+        if (visitStatusFilter !== "all" && statusValue !== visitStatusFilter) {
+            return false;
+        }
+
+        if (visitBuildingFilter !== "all" && buildingName !== visitBuildingFilter) {
+            return false;
+        }
+
+        const scheduledAt = schedule.scheduled_at ? new Date(schedule.scheduled_at).getTime() : null;
+        if (!scheduledAt) return false;
+
+        if (visitFromDate) {
+            const fromTs = new Date(`${visitFromDate}T00:00:00`).getTime();
+            if (!Number.isNaN(fromTs) && scheduledAt < fromTs) return false;
+        }
+        if (visitToDate) {
+            const toTs = new Date(`${visitToDate}T23:59:59`).getTime();
+            if (!Number.isNaN(toTs) && scheduledAt > toTs) return false;
+        }
+
+        if (visitSearchQuery.trim()) {
+            const q = visitSearchQuery.toLowerCase();
+            const building = (buildingName || "").toLowerCase();
+            const unit = (schedule.unit_number || "").toString().toLowerCase();
+            const note = (schedule.note || "").toString().toLowerCase();
+            if (!building.includes(q) && !unit.includes(q) && !note.includes(q)) {
+                return false;
+            }
+        }
+
+        return true;
+    });
+
 
     useEffect(() => {
-        async function checkAuthAndLoadData() {
+        const supabase = createClient();
+
+        async function loadCoreData() {
             try {
-                const supabase = createClient();
-
-                // Get user (middleware should have already verified auth)
                 const { data: { user }, error: authError } = await supabase.auth.getUser();
-
                 if (authError) {
                     console.error('Auth error:', authError);
                 }
-
-                // Set user if available (middleware handles redirects)
                 if (user) {
                     setUser(user);
                 }
 
-                // Load dashboard data
                 const [buildingsRes, apartmentsRes, phoneIssuesRes] = await Promise.all([
                     supabase.from('buildings').select('*'),
                     supabase.from('apartments').select('*'),
@@ -95,102 +156,25 @@ export default function DashboardPage() {
                     phoneIssues: phoneIssuesRes.data || []
                 });
 
-                // Fetch fire panel statistics from all buildings
+                // Load upcoming visit schedules from local storage (temporary)
                 try {
-                    const firePanelRes = await fetch('/api/fire-panel');
-                    const firePanelData = await firePanelRes.json();
-
-                    if (firePanelData.buildings && firePanelData.buildings.length > 0) {
-                        const perBuildingData: Record<string, { totalDevices: number; normal: number; contaminated: number; commFault: number }> = {};
-
-                        const buildingPromises = firePanelData.buildings.map((buildingCode: string) =>
-                            fetch(`/api/fire-panel/${encodeURIComponent(buildingCode)}`).then(res => res.json()).then(data => ({ buildingCode, data }))
-                        );
-
-                        const buildingResults = await Promise.all(buildingPromises);
-
-                        buildingResults.forEach(({ buildingCode, data: buildingData }: { buildingCode: string; data: any }) => {
-                            let bTotal = 0, bNormal = 0, bContaminated = 0, bCommFault = 0;
-
-                            // Count from devices array (same as building page)
-                            if (buildingData.devices && buildingData.devices.length > 0) {
-                                buildingData.devices.forEach((device: any) => {
-                                    // Count detectors
-                                    const detectors = device.detectorStatuses || device.detectorAddresses?.map((addr: number) => ({ address: addr, status: 'ok' })) || [];
-                                    detectors.forEach((d: any) => {
-                                        bTotal++;
-                                        if (d.status === 'problem') bContaminated++;
-                                        else if (d.status === 'warning') bCommFault++;
-                                        else bNormal++;
-                                    });
-
-                                    // Count common area
-                                    const commonArea = device.commonAreaStatuses || device.commonAreaAddresses?.map((addr: number) => ({ address: addr, status: 'ok' })) || [];
-                                    commonArea.forEach((d: any) => {
-                                        bTotal++;
-                                        if (d.status === 'problem') bContaminated++;
-                                        else if (d.status === 'warning') bCommFault++;
-                                        else bNormal++;
-                                    });
-
-                                    // Count bell, mcp, relay
-                                    if (device.bellAddress) {
-                                        bTotal++;
-                                        if (device.bellStatus === 'problem') bContaminated++;
-                                        else if (device.bellStatus === 'warning') bCommFault++;
-                                        else bNormal++;
-                                    }
-                                    if (device.mcpAddress) {
-                                        bTotal++;
-                                        if (device.mcpStatus === 'problem') bContaminated++;
-                                        else if (device.mcpStatus === 'warning') bCommFault++;
-                                        else bNormal++;
-                                    }
-                                    if (device.relayAddress) {
-                                        bTotal++;
-                                        if (device.relayStatus === 'problem') bContaminated++;
-                                        else if (device.relayStatus === 'warning') bCommFault++;
-                                        else bNormal++;
-                                    }
-                                });
-                            }
-
-                            perBuildingData[buildingCode] = {
-                                totalDevices: bTotal,
-                                normal: bNormal,
-                                contaminated: bContaminated,
-                                commFault: bCommFault
-                            };
-                        });
-
-                        setBuildingFirePanelData(perBuildingData);
+                    setVisitSchedulesLoading(true);
+                    if (typeof window !== "undefined") {
+                        const raw = window.localStorage.getItem("visit_schedules_local");
+                        const parsed = raw ? JSON.parse(raw) : [];
+                        const items = Array.isArray(parsed) ? parsed : [];
+                        const sorted = items
+                            .filter((item) => item?.scheduled_at)
+                            .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+                        setVisitSchedules(sorted.slice(0, 10));
+                    } else {
+                        setVisitSchedules([]);
                     }
-                } catch (firePanelError) {
-                    console.error('Error loading fire panel data:', firePanelError);
-                }
-
-                // Load problem devices from XLSM
-                try {
-                    setProblemDevicesLoading(true);
-
-                    // Get buildings list
-                    const buildingsRes = await fetch('/api/apartments-xlsm', { method: 'POST' });
-                    const buildingsData = await buildingsRes.json();
-                    setXlsmBuildings(buildingsData.buildings || []);
-
-                    // Get all apartments with problems or warnings
-                    const apartmentsRes = await fetch('/api/apartments-xlsm?limit=1000');
-                    const apartmentsData = await apartmentsRes.json();
-
-                    // Filter only apartments with problems or warnings
-                    const problemOnly = (apartmentsData.data || []).filter(
-                        (apt: ProblemApartment) => apt.has_problem || apt.has_warning
-                    );
-                    setProblemApartments(problemOnly);
-                } catch (problemError) {
-                    console.error('Error loading problem devices:', problemError);
+                } catch (scheduleError) {
+                    console.error('Error loading visit schedules:', scheduleError);
+                    setVisitSchedules([]);
                 } finally {
-                    setProblemDevicesLoading(false);
+                    setVisitSchedulesLoading(false);
                 }
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
@@ -199,8 +183,207 @@ export default function DashboardPage() {
             }
         }
 
-        checkAuthAndLoadData();
+        async function loadFirePanelStats() {
+            try {
+                const firePanelRes = await fetch('/api/fire-panel');
+                const firePanelData = await firePanelRes.json();
+
+                if (firePanelData.buildings && firePanelData.buildings.length > 0) {
+                    const perBuildingData: Record<string, { totalDevices: number; normal: number; contaminated: number; commFault: number }> = {};
+
+                    const buildingPromises = firePanelData.buildings.map((buildingCode: string) =>
+                        fetch(`/api/fire-panel/${encodeURIComponent(buildingCode)}`)
+                            .then(res => res.json())
+                            .then(data => ({ buildingCode, data }))
+                    );
+
+                    const buildingResults = await Promise.all(buildingPromises);
+
+                    buildingResults.forEach(({ buildingCode, data: buildingData }: { buildingCode: string; data: any }) => {
+                        let bTotal = 0, bNormal = 0, bContaminated = 0, bCommFault = 0;
+
+                        if (buildingData.devices && buildingData.devices.length > 0) {
+                            buildingData.devices.forEach((device: any) => {
+                                const detectors = device.detectorStatuses || device.detectorAddresses?.map((addr: number) => ({ address: addr, status: 'ok' })) || [];
+                                detectors.forEach((d: any) => {
+                                    bTotal++;
+                                    if (d.status === 'problem') bContaminated++;
+                                    else if (d.status === 'warning') bCommFault++;
+                                    else bNormal++;
+                                });
+
+                                const commonArea = device.commonAreaStatuses || device.commonAreaAddresses?.map((addr: number) => ({ address: addr, status: 'ok' })) || [];
+                                commonArea.forEach((d: any) => {
+                                    bTotal++;
+                                    if (d.status === 'problem') bContaminated++;
+                                    else if (d.status === 'warning') bCommFault++;
+                                    else bNormal++;
+                                });
+
+                                if (device.bellAddress) {
+                                    bTotal++;
+                                    if (device.bellStatus === 'problem') bContaminated++;
+                                    else if (device.bellStatus === 'warning') bCommFault++;
+                                    else bNormal++;
+                                }
+                                if (device.mcpAddress) {
+                                    bTotal++;
+                                    if (device.mcpStatus === 'problem') bContaminated++;
+                                    else if (device.mcpStatus === 'warning') bCommFault++;
+                                    else bNormal++;
+                                }
+                                if (device.relayAddress) {
+                                    bTotal++;
+                                    if (device.relayStatus === 'problem') bContaminated++;
+                                    else if (device.relayStatus === 'warning') bCommFault++;
+                                    else bNormal++;
+                                }
+                            });
+                        }
+
+                        perBuildingData[buildingCode] = {
+                            totalDevices: bTotal,
+                            normal: bNormal,
+                            contaminated: bContaminated,
+                            commFault: bCommFault
+                        };
+                    });
+
+                    setBuildingFirePanelData(perBuildingData);
+                }
+            } catch (firePanelError) {
+                console.error('Error loading fire panel data:', firePanelError);
+            }
+        }
+
+        async function loadProblemDevices() {
+            try {
+                setProblemDevicesLoading(true);
+                const buildingsRes = await fetch('/api/apartments-xlsm', { method: 'POST' });
+                const buildingsData = await buildingsRes.json();
+                setXlsmBuildings(buildingsData.buildings || []);
+
+                const apartmentsRes = await fetch('/api/apartments-xlsm?limit=1000');
+                const apartmentsData = await apartmentsRes.json();
+
+                const problemOnly = (apartmentsData.data || []).filter(
+                    (apt: ProblemApartment) => apt.has_problem || apt.has_warning
+                );
+                setProblemApartments(problemOnly);
+            } catch (problemError) {
+                console.error('Error loading problem devices:', problemError);
+            } finally {
+                setProblemDevicesLoading(false);
+            }
+        }
+
+        loadCoreData();
+        loadFirePanelStats();
+        loadProblemDevices();
     }, [router]);
+
+    const updateVisitStatus = (id: string, nextStatus: string) => {
+        setVisitSchedules((prev) => {
+            const next = prev.map((item) =>
+                item.id === id ? { ...item, status: nextStatus } : item
+            );
+            if (typeof window !== "undefined") {
+                try {
+                    const raw = window.localStorage.getItem("visit_schedules_local");
+                    const parsed = raw ? JSON.parse(raw) : [];
+                    const items = Array.isArray(parsed) ? parsed : [];
+                    const updated = items.map((item) =>
+                        item.id === id ? { ...item, status: nextStatus } : item
+                    );
+                    window.localStorage.setItem("visit_schedules_local", JSON.stringify(updated));
+                } catch (error) {
+                    console.error("Error updating visit schedule status:", error);
+                }
+            }
+            return next;
+        });
+    };
+
+    const removeVisit = (id: string) => {
+        if (typeof window !== "undefined") {
+            const ok = window.confirm("Энэ товлолыг устгах уу?");
+            if (!ok) return;
+            try {
+                const raw = window.localStorage.getItem("visit_schedules_local");
+                const parsed = raw ? JSON.parse(raw) : [];
+                const items = Array.isArray(parsed) ? parsed : [];
+                const updated = items.filter((item) => item.id !== id);
+                window.localStorage.setItem("visit_schedules_local", JSON.stringify(updated));
+                setVisitSchedules(updated);
+            } catch (error) {
+                console.error("Error removing visit schedule:", error);
+            }
+        }
+    };
+
+    const startEditVisit = (schedule: any) => {
+        setEditingVisitId(schedule.id);
+        setEditBuildingName(schedule.building_name || "");
+        setEditUnitNumber(schedule.unit_number || "");
+        if (schedule.scheduled_at) {
+            const d = new Date(schedule.scheduled_at);
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            const dd = String(d.getDate()).padStart(2, "0");
+            const hh = String(d.getHours()).padStart(2, "0");
+            const min = String(d.getMinutes()).padStart(2, "0");
+            setEditDate(`${yyyy}-${mm}-${dd}`);
+            setEditTime(`${hh}:${min}`);
+        } else {
+            setEditDate("");
+            setEditTime("");
+        }
+        setEditNote(schedule.note || "");
+    };
+
+    const saveEditVisit = (id: string) => {
+        const nextScheduledAt = editDate && editTime ? new Date(`${editDate}T${editTime}`).toISOString() : null;
+        setVisitSchedules((prev) => {
+            const next = prev.map((item) =>
+                item.id === id
+                    ? {
+                        ...item,
+                        building_name: editBuildingName.trim(),
+                        unit_number: editUnitNumber.trim(),
+                        scheduled_at: nextScheduledAt || item.scheduled_at,
+                        note: editNote.trim(),
+                    }
+                    : item
+            );
+            if (typeof window !== "undefined") {
+                try {
+                    const raw = window.localStorage.getItem("visit_schedules_local");
+                    const parsed = raw ? JSON.parse(raw) : [];
+                    const items = Array.isArray(parsed) ? parsed : [];
+                    const updated = items.map((item) =>
+                        item.id === id
+                            ? {
+                                ...item,
+                                building_name: editBuildingName.trim(),
+                                unit_number: editUnitNumber.trim(),
+                                scheduled_at: nextScheduledAt || item.scheduled_at,
+                                note: editNote.trim(),
+                            }
+                            : item
+                    );
+                    window.localStorage.setItem("visit_schedules_local", JSON.stringify(updated));
+                } catch (error) {
+                    console.error("Error saving visit schedule:", error);
+                }
+            }
+            return next;
+        });
+        setEditingVisitId(null);
+    };
+
+    const cancelEditVisit = () => {
+        setEditingVisitId(null);
+    };
 
     if (loading) {
         return (
@@ -313,7 +496,8 @@ export default function DashboardPage() {
 
                         {/* Sidebar - Recent Maintenance Records */}
                         <div className="lg:col-span-1">
-                            <Card className="sticky top-20 border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-md">
+                            <Card className="border-0 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-md">
+                                <div className="h-1 bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400" />
                                 <CardHeader className="pb-3 border-b border-gray-100 dark:border-gray-700">
                                     <div className="flex items-center justify-between">
                                         <CardTitle className="text-lg font-bold flex items-center gap-2 text-gray-900 dark:text-gray-100">
@@ -391,6 +575,210 @@ export default function DashboardPage() {
                                             </div>
                                             <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">Дуудлага байхгүй</h3>
                                             <p className="text-xs text-gray-500 dark:text-gray-400">Домофон болон гэрлийн дуудлага энд харагдана.</p>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+
+                            <Card className="mt-4 border border-red-200/70 dark:border-red-900/40 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-md">
+                                <div className="h-1 bg-gradient-to-r from-red-400 via-rose-400 to-orange-300" />
+                                <CardHeader className="pb-3 border-b border-gray-100 dark:border-gray-700">
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                                            {"\u0422\u043E\u0432\u043B\u043E\u0441\u043E\u043D \u0430\u0439\u043B\u0443\u0443\u0434"}
+                                        </CardTitle>
+                                        <Link href="/operator" className="text-purple-600 dark:text-purple-400 hover:underline text-xs font-medium">
+                                            {"\u041E\u043F\u0435\u0440\u0430\u0442\u043E\u0440"} →
+                                        </Link>
+                                    </div>
+                                    <div className="mt-3 grid grid-cols-1 gap-3">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <Select value={visitStatusFilter} onValueChange={setVisitStatusFilter}>
+                                                <SelectTrigger className="h-8 bg-white dark:bg-gray-700 text-xs">
+                                                    <SelectValue placeholder="Төлөв" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">Бүгд</SelectItem>
+                                                    {VISIT_STATUS_OPTIONS.map((option) => (
+                                                        <SelectItem key={option.value} value={option.value}>
+                                                            {option.label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <Select value={visitBuildingFilter} onValueChange={setVisitBuildingFilter}>
+                                                <SelectTrigger className="h-8 bg-white dark:bg-gray-700 text-xs">
+                                                    <SelectValue placeholder="Барилга" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="all">Бүгд</SelectItem>
+                                                    {Array.from(new Set(visitSchedules.map((s: any) =>
+                                                        s.building_name || data.buildings.find((b: any) => b.id === s.building_id)?.name || "-"
+                                                    ))).map((name) => (
+                                                        <SelectItem key={name} value={name}>
+                                                            {name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <Input
+                                                type="date"
+                                                value={visitFromDate}
+                                                onChange={(e) => setVisitFromDate(e.target.value)}
+                                                className="h-8 text-xs bg-white dark:bg-gray-700"
+                                                placeholder="Эхлэх өдөр"
+                                            />
+                                            <Input
+                                                type="date"
+                                                value={visitToDate}
+                                                onChange={(e) => setVisitToDate(e.target.value)}
+                                                className="h-8 text-xs bg-white dark:bg-gray-700"
+                                                placeholder="Дуусах өдөр"
+                                            />
+                                        </div>
+                                        <Input
+                                            value={visitSearchQuery}
+                                            onChange={(e) => setVisitSearchQuery(e.target.value)}
+                                            className="h-8 text-xs bg-white dark:bg-gray-700"
+                                            placeholder="Хайлт (барилга, тоот, тэмдэглэл)"
+                                        />
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="p-0">
+                                    {visitSchedulesLoading ? (
+                                        <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                                            {"\u0423\u043D\u0448\u0438\u0436 \u0431\u0430\u0439\u043D\u0430..."}
+                                        </div>
+                                    ) : filteredVisitSchedules.length > 0 ? (
+                                        <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                                            {filteredVisitSchedules.map((schedule: any) => {
+                                                const buildingName = schedule.building_name
+                                                    || data.buildings.find((b: any) => b.id === schedule.building_id)?.name
+                                                    || "-";
+                                                const unitNumber = schedule.unit_number || data.apartments.find((a: any) => a.id === schedule.apartment_id)?.unit_number || "-";
+                                                const statusValue = schedule.status || "not_visited";
+                                                const statusLabel = VISIT_STATUS_OPTIONS.find((s) => s.value === statusValue)?.label || "Ороогүй";
+                                                const isEditing = editingVisitId === schedule.id;
+                                                return (
+                                                    <div key={schedule.id} className="p-4 text-sm">
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <div className="font-semibold text-gray-900 dark:text-gray-100">
+                                                                {buildingName} — {unitNumber}
+                                                            </div>
+                                                            <span className={`text-[10px] px-2 py-0.5 rounded-full border ${STATUS_STYLES[statusValue] || STATUS_STYLES.not_visited}`}>
+                                                                {statusLabel}
+                                                            </span>
+                                                        </div>
+                                                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                            {schedule.scheduled_at
+                                                                ? new Date(schedule.scheduled_at).toLocaleString('mn-MN', {
+                                                                    month: 'short',
+                                                                    day: 'numeric',
+                                                                    hour: '2-digit',
+                                                                    minute: '2-digit',
+                                                                })
+                                                                : "-"}
+                                                        </div>
+                                                        {schedule.note && (
+                                                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                Тэмдэглэл: {schedule.note}
+                                                            </div>
+                                                        )}
+                                                        <div className="mt-3">
+                                                            <Select
+                                                                value={statusValue}
+                                                                onValueChange={(value) => updateVisitStatus(schedule.id, value)}
+                                                            >
+                                                                <SelectTrigger className="h-8 bg-white dark:bg-gray-700 text-xs">
+                                                                    <SelectValue placeholder="Төлөв сонгох" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    {VISIT_STATUS_OPTIONS.map((option) => (
+                                                                        <SelectItem key={option.value} value={option.value}>
+                                                                            {option.label}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                        <div className="mt-3 flex gap-2">
+                                                            {!isEditing ? (
+                                                                <>
+                                                                    <button
+                                                                        className="text-xs text-purple-600 hover:underline"
+                                                                        onClick={() => startEditVisit(schedule)}
+                                                                    >
+                                                                        Засах
+                                                                    </button>
+                                                                    <button
+                                                                        className="text-xs text-red-600 hover:underline"
+                                                                        onClick={() => removeVisit(schedule.id)}
+                                                                    >
+                                                                        Устгах
+                                                                    </button>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <button
+                                                                        className="text-xs text-green-600 hover:underline"
+                                                                        onClick={() => saveEditVisit(schedule.id)}
+                                                                    >
+                                                                        Хадгалах
+                                                                    </button>
+                                                                    <button
+                                                                        className="text-xs text-gray-500 hover:underline"
+                                                                        onClick={cancelEditVisit}
+                                                                    >
+                                                                        Болих
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                        {isEditing && (
+                                                            <div className="mt-3 grid grid-cols-1 gap-2">
+                                                                <Input
+                                                                    value={editBuildingName}
+                                                                    onChange={(e) => setEditBuildingName(e.target.value)}
+                                                                    className="h-8 text-xs bg-white dark:bg-gray-700"
+                                                                    placeholder="Барилга"
+                                                                />
+                                                                <Input
+                                                                    value={editUnitNumber}
+                                                                    onChange={(e) => setEditUnitNumber(e.target.value)}
+                                                                    className="h-8 text-xs bg-white dark:bg-gray-700"
+                                                                    placeholder="Айлын тоот"
+                                                                />
+                                                                <div className="grid grid-cols-2 gap-2">
+                                                                    <Input
+                                                                        type="date"
+                                                                        value={editDate}
+                                                                        onChange={(e) => setEditDate(e.target.value)}
+                                                                        className="h-8 text-xs bg-white dark:bg-gray-700"
+                                                                    />
+                                                                    <Input
+                                                                        type="time"
+                                                                        value={editTime}
+                                                                        onChange={(e) => setEditTime(e.target.value)}
+                                                                        className="h-8 text-xs bg-white dark:bg-gray-700"
+                                                                    />
+                                                                </div>
+                                                                <Input
+                                                                    value={editNote}
+                                                                    onChange={(e) => setEditNote(e.target.value)}
+                                                                    className="h-8 text-xs bg-white dark:bg-gray-700"
+                                                                    placeholder="Тэмдэглэл"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                                            {"\u0422\u043E\u0432\u043B\u043E\u0441\u043E\u043D \u0446\u0430\u0433 \u043E\u043B\u0434\u0441\u043E\u043D\u0433\u04AF\u0439"}
                                         </div>
                                     )}
                                 </CardContent>
@@ -601,3 +989,8 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+
+
+
+
