@@ -100,6 +100,7 @@ declare module 'lucide-react' {
   export const Heart: LucideIcon;
   export const Share: LucideIcon;
   export const Copy: LucideIcon;
+  export const Clipboard: LucideIcon;
   export const ExternalLink: LucideIcon;
   export const Link: LucideIcon;
   export const Paperclip: LucideIcon;
