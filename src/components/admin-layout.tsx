@@ -11,7 +11,7 @@ import {
     Users,
     Building,
     Home,
-    ClipboardList,
+    Clipboard,
     Menu
 } from "lucide-react";
 
@@ -40,7 +40,7 @@ const navItems: NavItem[] = [
     {
         label: "Tasks",
         href: "/admin-hunnu/tasks",
-        icon: ClipboardList,
+        icon: Clipboard,
     },
 ];
 

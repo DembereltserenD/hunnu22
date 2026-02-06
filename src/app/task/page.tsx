@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import DashboardNavbar from '@/components/dashboard-navbar';
-import { ClipboardList } from 'lucide-react';
+import { Clipboard } from 'lucide-react';
 import { createClient } from '../../../supabase/client';
 
 type LoopGroup = {
@@ -246,7 +246,7 @@ export default function TaskPage() {
         <div className="mb-8 animate-fade-in">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 bg-gradient-to-br from-purple-600 to-orange-500 rounded-lg shadow-lg">
-              <ClipboardList className="h-6 w-6 text-white" />
+              <Clipboard className="h-6 w-6 text-white" />
             </div>
             <h1 className="text-3xl md:text-4xl font-normal bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 bg-clip-text text-transparent font-['Clash_Display']">
               Task
