@@ -5,8 +5,8 @@ const isProtectedRoute = (pathname: string): boolean => {
   const protectedPaths = [
     "/dashboard",
     "/admin-hunnu",
-    "/worker-dashboard",
     "/worker-requests",
+    "/task",
     "/building",
     "/health-stats",
     "/visit",
@@ -18,6 +18,10 @@ const isAuthPage = (pathname: string): boolean => {
   return pathname.startsWith("/sign-in") ||
          pathname.startsWith("/sign-up") ||
          pathname.startsWith("/forgot-password");
+};
+
+const isAdminRoute = (pathname: string): boolean => {
+  return pathname.startsWith("/admin-hunnu");
 };
 
 export const updateSession = async (request: NextRequest) => {
@@ -69,6 +73,19 @@ export const updateSession = async (request: NextRequest) => {
       const redirectUrl = new URL("/sign-in", request.url);
       redirectUrl.searchParams.set("redirect", pathname);
       return NextResponse.redirect(redirectUrl);
+    }
+
+    // Enforce admin role for admin routes
+    if (user && isAdminRoute(pathname)) {
+      const { data: userData, error: userError } = await supabase
+        .from("users")
+        .select("role")
+        .eq("email", user.email)
+        .single();
+
+      if (userError || userData?.role !== "admin") {
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
     }
 
     // Redirect root to dashboard if authenticated

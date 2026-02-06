@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, AlertTriangle, CheckCircle2, Activity } from "lucide-react";
 import DashboardNavbar from "@/components/dashboard-navbar";
+import { createClient } from '../../../supabase/client';
 
 interface BuildingHealth {
   buildingCode: string;
@@ -35,6 +36,12 @@ export default function HealthStatsPage() {
 
   const loadHealthData = async () => {
     try {
+      const supabase = createClient();
+      const { data: buildingsList } = await supabase.from('buildings').select('id, name');
+      const buildingIdByName = new Map(
+        (buildingsList || []).map((b: any) => [b.name, b.id])
+      );
+
       const firePanelRes = await fetch('/api/fire-panel');
       const firePanelData = await firePanelRes.json();
 
@@ -42,13 +49,38 @@ export default function HealthStatsPage() {
         const healthData: BuildingHealth[] = [];
         let totalDevices = 0, totalNormal = 0, totalContaminated = 0, totalCommFault = 0;
 
-        const buildingPromises = firePanelData.buildings.map((buildingCode: string) =>
-          fetch(`/api/fire-panel/${encodeURIComponent(buildingCode)}`).then(res => res.json()).then(data => ({ buildingCode, data }))
-        );
+        const buildingPromises = firePanelData.buildings.map((buildingCode: string) => {
+          const buildingId = buildingIdByName.get(buildingCode);
+          const firePanelPromise = fetch(`/api/fire-panel/${encodeURIComponent(buildingCode)}`)
+            .then(res => res.json());
+          const overridesPromise = buildingId
+            ? fetch(`/api/detector-status?buildingId=${buildingId}`)
+                .then(res => res.ok ? res.json() : { overrides: {} })
+                .catch(() => ({ overrides: {} }))
+            : Promise.resolve({ overrides: {} });
+
+          return Promise.all([firePanelPromise, overridesPromise])
+            .then(([data, overridesData]) => ({
+              buildingCode,
+              data,
+              overrides: overridesData?.overrides || {},
+            }));
+        });
 
         const buildingResults = await Promise.all(buildingPromises);
 
-        buildingResults.forEach(({ buildingCode, data: buildingData }: { buildingCode: string; data: any }) => {
+        const applyOverride = (
+          overrides: Record<string, string>,
+          deviceType: 'detector' | 'commonArea' | 'bell' | 'mcp' | 'relay',
+          unitNumber: string,
+          address: number,
+          originalStatus: 'ok' | 'problem' | 'warning'
+        ) => {
+          const key = `${deviceType}-${unitNumber}-${address}`;
+          return (overrides[key] as 'ok' | 'problem' | 'warning') || originalStatus;
+        };
+
+        buildingResults.forEach(({ buildingCode, data: buildingData, overrides }: { buildingCode: string; data: any; overrides: Record<string, string> }) => {
           let bTotal = 0, bNormal = 0, bContaminated = 0, bCommFault = 0;
 
           // Count from devices array (same as building page)
@@ -58,8 +90,9 @@ export default function HealthStatsPage() {
               const detectors = device.detectorStatuses || device.detectorAddresses?.map((addr: number) => ({ address: addr, status: 'ok' })) || [];
               detectors.forEach((d: any) => {
                 bTotal++;
-                if (d.status === 'problem') bContaminated++;
-                else if (d.status === 'warning') bCommFault++;
+                const status = applyOverride(overrides, 'detector', String(device.unit), d.address, d.status);
+                if (status === 'problem') bContaminated++;
+                else if (status === 'warning') bCommFault++;
                 else bNormal++;
               });
 
@@ -67,28 +100,32 @@ export default function HealthStatsPage() {
               const commonArea = device.commonAreaStatuses || device.commonAreaAddresses?.map((addr: number) => ({ address: addr, status: 'ok' })) || [];
               commonArea.forEach((d: any) => {
                 bTotal++;
-                if (d.status === 'problem') bContaminated++;
-                else if (d.status === 'warning') bCommFault++;
+                const status = applyOverride(overrides, 'commonArea', String(device.unit), d.address, d.status);
+                if (status === 'problem') bContaminated++;
+                else if (status === 'warning') bCommFault++;
                 else bNormal++;
               });
 
               // Count bell, mcp, relay
               if (device.bellAddress) {
                 bTotal++;
-                if (device.bellStatus === 'problem') bContaminated++;
-                else if (device.bellStatus === 'warning') bCommFault++;
+                const status = applyOverride(overrides, 'bell', String(device.unit), device.bellAddress, device.bellStatus || 'ok');
+                if (status === 'problem') bContaminated++;
+                else if (status === 'warning') bCommFault++;
                 else bNormal++;
               }
               if (device.mcpAddress) {
                 bTotal++;
-                if (device.mcpStatus === 'problem') bContaminated++;
-                else if (device.mcpStatus === 'warning') bCommFault++;
+                const status = applyOverride(overrides, 'mcp', String(device.unit), device.mcpAddress, device.mcpStatus || 'ok');
+                if (status === 'problem') bContaminated++;
+                else if (status === 'warning') bCommFault++;
                 else bNormal++;
               }
               if (device.relayAddress) {
                 bTotal++;
-                if (device.relayStatus === 'problem') bContaminated++;
-                else if (device.relayStatus === 'warning') bCommFault++;
+                const status = applyOverride(overrides, 'relay', String(device.unit), device.relayAddress, device.relayStatus || 'ok');
+                if (status === 'problem') bContaminated++;
+                else if (status === 'warning') bCommFault++;
                 else bNormal++;
               }
             });
@@ -185,13 +222,13 @@ export default function HealthStatsPage() {
             <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{totals.normal.toLocaleString()}</div>
             <div className="text-xs text-emerald-600/70 dark:text-emerald-400/70 font-medium mt-1">Хэвийн</div>
           </div>
-          <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/30 rounded-xl p-4 text-center">
-            <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">{totals.contaminated.toLocaleString()}</div>
-            <div className="text-xs text-amber-600/70 dark:text-amber-400/70 font-medium mt-1">Бохирдсон</div>
-          </div>
           <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 rounded-xl p-4 text-center">
-            <div className="text-3xl font-bold text-red-600 dark:text-red-400">{totals.commFault.toLocaleString()}</div>
-            <div className="text-xs text-red-600/70 dark:text-red-400/70 font-medium mt-1">Холболтын алдаа</div>
+            <div className="text-3xl font-bold text-red-600 dark:text-red-400">{totals.contaminated.toLocaleString()}</div>
+            <div className="text-xs text-red-600/70 dark:text-red-400/70 font-medium mt-1">Бохирдсон</div>
+          </div>
+          <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/30 dark:to-yellow-800/30 rounded-xl p-4 text-center">
+            <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{totals.commFault.toLocaleString()}</div>
+            <div className="text-xs text-yellow-600/70 dark:text-yellow-400/70 font-medium mt-1">Холболтын алдаа</div>
           </div>
         </div>
 
@@ -270,13 +307,13 @@ export default function HealthStatsPage() {
                     <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{building.normal}</div>
                     <div className="text-[9px] text-emerald-600/70 dark:text-emerald-400/70">Хэвийн</div>
                   </div>
-                  <div className="bg-amber-50 dark:bg-amber-900/20 rounded p-1.5">
-                    <div className="text-sm font-bold text-amber-600 dark:text-amber-400">{building.contaminated}</div>
-                    <div className="text-[9px] text-amber-600/70 dark:text-amber-400/70">Бохир</div>
-                  </div>
                   <div className="bg-red-50 dark:bg-red-900/20 rounded p-1.5">
-                    <div className="text-sm font-bold text-red-600 dark:text-red-400">{building.commFault}</div>
-                    <div className="text-[9px] text-red-600/70 dark:text-red-400/70">Алдаа</div>
+                    <div className="text-sm font-bold text-red-600 dark:text-red-400">{building.contaminated}</div>
+                    <div className="text-[9px] text-red-600/70 dark:text-red-400/70">Бохирдсон</div>
+                  </div>
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded p-1.5">
+                    <div className="text-sm font-bold text-yellow-600 dark:text-yellow-400">{building.commFault}</div>
+                    <div className="text-[9px] text-yellow-600/70 dark:text-yellow-400/70">Холболтын алдаа</div>
                   </div>
                 </div>
 
@@ -321,3 +358,5 @@ export default function HealthStatsPage() {
     </div>
   );
 }
+
+

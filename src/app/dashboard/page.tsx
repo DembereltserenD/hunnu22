@@ -155,6 +155,7 @@ export default function DashboardPage() {
                     apartments: apartmentsRes.data || [],
                     phoneIssues: phoneIssuesRes.data || []
                 });
+                await loadFirePanelStats(buildingsRes.data || []);
 
                 // Load upcoming visit schedules from local storage (temporary)
                 try {
@@ -183,23 +184,49 @@ export default function DashboardPage() {
             }
         }
 
-        async function loadFirePanelStats() {
+        async function loadFirePanelStats(buildingsList: any[]) {
             try {
                 const firePanelRes = await fetch('/api/fire-panel');
                 const firePanelData = await firePanelRes.json();
 
                 if (firePanelData.buildings && firePanelData.buildings.length > 0) {
+                    const buildingIdByName = new Map(
+                        (buildingsList || []).map((b: any) => [b.name, b.id])
+                    );
                     const perBuildingData: Record<string, { totalDevices: number; normal: number; contaminated: number; commFault: number }> = {};
 
-                    const buildingPromises = firePanelData.buildings.map((buildingCode: string) =>
-                        fetch(`/api/fire-panel/${encodeURIComponent(buildingCode)}`)
-                            .then(res => res.json())
-                            .then(data => ({ buildingCode, data }))
-                    );
+                    const buildingPromises = firePanelData.buildings.map((buildingCode: string) => {
+                        const buildingId = buildingIdByName.get(buildingCode);
+                        const firePanelPromise = fetch(`/api/fire-panel/${encodeURIComponent(buildingCode)}`)
+                            .then(res => res.json());
+                        const overridesPromise = buildingId
+                            ? fetch(`/api/detector-status?buildingId=${buildingId}`)
+                                .then(res => res.ok ? res.json() : { overrides: {} })
+                                .catch(() => ({ overrides: {} }))
+                            : Promise.resolve({ overrides: {} });
+
+                        return Promise.all([firePanelPromise, overridesPromise])
+                            .then(([data, overridesData]) => ({
+                                buildingCode,
+                                data,
+                                overrides: overridesData?.overrides || {},
+                            }));
+                    });
 
                     const buildingResults = await Promise.all(buildingPromises);
 
-                    buildingResults.forEach(({ buildingCode, data: buildingData }: { buildingCode: string; data: any }) => {
+                    const applyOverride = (
+                        overrides: Record<string, string>,
+                        deviceType: 'detector' | 'commonArea' | 'bell' | 'mcp' | 'relay',
+                        unitNumber: string,
+                        address: number,
+                        originalStatus: 'ok' | 'problem' | 'warning'
+                    ) => {
+                        const key = `${deviceType}-${unitNumber}-${address}`;
+                        return (overrides[key] as 'ok' | 'problem' | 'warning') || originalStatus;
+                    };
+
+                    buildingResults.forEach(({ buildingCode, data: buildingData, overrides }: { buildingCode: string; data: any; overrides: Record<string, string> }) => {
                         let bTotal = 0, bNormal = 0, bContaminated = 0, bCommFault = 0;
 
                         if (buildingData.devices && buildingData.devices.length > 0) {
@@ -207,35 +234,40 @@ export default function DashboardPage() {
                                 const detectors = device.detectorStatuses || device.detectorAddresses?.map((addr: number) => ({ address: addr, status: 'ok' })) || [];
                                 detectors.forEach((d: any) => {
                                     bTotal++;
-                                    if (d.status === 'problem') bContaminated++;
-                                    else if (d.status === 'warning') bCommFault++;
+                                    const status = applyOverride(overrides, 'detector', String(device.unit), d.address, d.status);
+                                    if (status === 'problem') bContaminated++;
+                                    else if (status === 'warning') bCommFault++;
                                     else bNormal++;
                                 });
 
                                 const commonArea = device.commonAreaStatuses || device.commonAreaAddresses?.map((addr: number) => ({ address: addr, status: 'ok' })) || [];
                                 commonArea.forEach((d: any) => {
                                     bTotal++;
-                                    if (d.status === 'problem') bContaminated++;
-                                    else if (d.status === 'warning') bCommFault++;
+                                    const status = applyOverride(overrides, 'commonArea', String(device.unit), d.address, d.status);
+                                    if (status === 'problem') bContaminated++;
+                                    else if (status === 'warning') bCommFault++;
                                     else bNormal++;
                                 });
 
                                 if (device.bellAddress) {
                                     bTotal++;
-                                    if (device.bellStatus === 'problem') bContaminated++;
-                                    else if (device.bellStatus === 'warning') bCommFault++;
+                                    const status = applyOverride(overrides, 'bell', String(device.unit), device.bellAddress, device.bellStatus || 'ok');
+                                    if (status === 'problem') bContaminated++;
+                                    else if (status === 'warning') bCommFault++;
                                     else bNormal++;
                                 }
                                 if (device.mcpAddress) {
                                     bTotal++;
-                                    if (device.mcpStatus === 'problem') bContaminated++;
-                                    else if (device.mcpStatus === 'warning') bCommFault++;
+                                    const status = applyOverride(overrides, 'mcp', String(device.unit), device.mcpAddress, device.mcpStatus || 'ok');
+                                    if (status === 'problem') bContaminated++;
+                                    else if (status === 'warning') bCommFault++;
                                     else bNormal++;
                                 }
                                 if (device.relayAddress) {
                                     bTotal++;
-                                    if (device.relayStatus === 'problem') bContaminated++;
-                                    else if (device.relayStatus === 'warning') bCommFault++;
+                                    const status = applyOverride(overrides, 'relay', String(device.unit), device.relayAddress, device.relayStatus || 'ok');
+                                    if (status === 'problem') bContaminated++;
+                                    else if (status === 'warning') bCommFault++;
                                     else bNormal++;
                                 }
                             });
@@ -278,7 +310,6 @@ export default function DashboardPage() {
         }
 
         loadCoreData();
-        loadFirePanelStats();
         loadProblemDevices();
     }, [router]);
 
@@ -432,45 +463,59 @@ export default function DashboardPage() {
 
                                     return (
                                         <Link key={building.id} href={`/building/${building.id}`}>
-                                            <Card className={`border-0 shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer group overflow-hidden animate-slide-up bg-white/80 dark:bg-gray-800/80 backdrop-blur-md ${hasIssues ? 'ring-2 ring-orange-400 dark:ring-orange-500' : ''}`}
-                                                style={{ animationDelay: `${index * 50}ms` }}>
-                                                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-orange-500/5 dark:from-purple-400/10 dark:to-orange-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                                                <CardHeader className="pb-3 relative">
-                                                    <CardTitle className="flex items-center gap-3 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
-                                                        <div className="p-2 bg-purple-100 dark:bg-purple-900/50 rounded-lg group-hover:scale-110 transition-transform">
-                                                            <Building2 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                                            <Card
+                                                className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 cursor-pointer animate-slide-up bg-gradient-to-br from-slate-900/60 via-slate-900/40 to-slate-800/60 backdrop-blur-md shadow-[0_10px_30px_rgba(0,0,0,0.25)] hover:-translate-y-0.5 hover:shadow-[0_20px_60px_rgba(0,0,0,0.35)] ${
+                                                    hasIssues ? 'border-orange-400/60' : 'border-white/10 dark:border-white/5'
+                                                }`}
+                                                style={{ animationDelay: `${index * 50}ms` }}
+                                            >
+                                                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%)] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                                <div className={`absolute left-0 top-0 h-1.5 w-full ${
+                                                    hasIssues ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-red-500' : 'bg-gradient-to-r from-slate-500/40 via-slate-400/30 to-slate-500/40'
+                                                }`} />
+                                                <CardHeader className="pb-2 pt-5 relative">
+                                                    <CardTitle className="flex items-start justify-between gap-3">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="p-2.5 bg-purple-500/20 rounded-xl ring-1 ring-purple-500/30 group-hover:ring-purple-400/60 transition-colors">
+                                                                <Building2 className="w-5 h-5 text-purple-200" />
+                                                            </div>
+                                                            <div>
+                                                                <span className="text-lg font-semibold text-white">{building.name}</span>
+                                                                {building.address && (
+                                                                    <p className="text-xs text-slate-300 font-normal mt-0.5">{building.address}</p>
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{building.name}</span>
-                                                            {building.address && (
-                                                                <p className="text-xs text-gray-500 dark:text-gray-400 font-normal mt-0.5">{building.address}</p>
-                                                            )}
-                                                        </div>
+                                                        <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                                                            hasIssues ? 'bg-orange-500/20 text-orange-200 ring-1 ring-orange-400/40' : 'bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/30'
+                                                        }`}>
+                                                            {hasIssues ? 'Асуудалтай' : 'Хэвийн'}
+                                                        </span>
                                                     </CardTitle>
                                                 </CardHeader>
-                                                <CardContent className="relative">
+                                                <CardContent className="relative pt-2">
                                                     {fpData ? (
                                                         <div className="grid grid-cols-4 gap-2">
-                                                            <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-lg p-2 text-center">
-                                                                <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{fpData.totalDevices}</div>
-                                                                <div className="text-[10px] text-blue-600/70 dark:text-blue-400/70 font-medium">Нийт</div>
+                                                            <div className="rounded-xl p-2 text-center bg-gradient-to-br from-blue-500/15 to-blue-500/5 ring-1 ring-blue-400/20">
+                                                                <div className="text-lg font-bold text-blue-200">{fpData.totalDevices}</div>
+                                                                <div className="text-[10px] text-blue-200/70 font-medium">Нийт</div>
                                                             </div>
-                                                            <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-800/30 rounded-lg p-2 text-center">
-                                                                <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{fpData.normal}</div>
-                                                                <div className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70 font-medium">Хэвийн</div>
+                                                            <div className="rounded-xl p-2 text-center bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 ring-1 ring-emerald-400/20">
+                                                                <div className="text-lg font-bold text-emerald-200">{fpData.normal}</div>
+                                                                <div className="text-[10px] text-emerald-200/70 font-medium">Хэвийн</div>
                                                             </div>
-                                                            <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/30 rounded-lg p-2 text-center">
-                                                                <div className="text-lg font-bold text-amber-600 dark:text-amber-400">{fpData.contaminated}</div>
-                                                                <div className="text-[10px] text-amber-600/70 dark:text-amber-400/70 font-medium">Бохир</div>
+                                                            <div className="rounded-xl p-2 text-center bg-gradient-to-br from-red-500/15 to-red-500/5 ring-1 ring-red-400/20">
+                                                                <div className="text-lg font-bold text-red-200">{fpData.contaminated}</div>
+                                                                <div className="text-[10px] text-red-200/70 font-medium">Бохирдсон</div>
                                                             </div>
-                                                            <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 rounded-lg p-2 text-center">
-                                                                <div className="text-lg font-bold text-red-600 dark:text-red-400">{fpData.commFault}</div>
-                                                                <div className="text-[10px] text-red-600/70 dark:text-red-400/70 font-medium">Алдаа</div>
+                                                            <div className="rounded-xl p-2 text-center bg-gradient-to-br from-yellow-500/15 to-yellow-500/5 ring-1 ring-yellow-400/20">
+                                                                <div className="text-lg font-bold text-yellow-200">{fpData.commFault}</div>
+                                                                <div className="text-[10px] text-yellow-200/70 font-medium">Холболтын алдаа</div>
                                                             </div>
                                                         </div>
                                                     ) : (
-                                                        <div className="text-center py-4 text-sm text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-gray-700/50 rounded-lg">
-                                                            <Building2 className="w-5 h-5 mx-auto mb-1 text-gray-400 dark:text-gray-500" />
+                                                        <div className="text-center py-4 text-sm text-slate-300 bg-white/5 rounded-lg ring-1 ring-white/10">
+                                                            <Building2 className="w-5 h-5 mx-auto mb-1 text-slate-300" />
                                                             Мэдээлэл байхгүй
                                                         </div>
                                                     )}
@@ -504,9 +549,6 @@ export default function DashboardPage() {
                                             <div className="w-2 h-2 bg-purple-600 dark:bg-purple-400 rounded-full animate-pulse"></div>
                                             Сүүлийн бичлэг
                                         </CardTitle>
-                                        <Link href="/worker-dashboard" className="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 text-sm font-medium hover:underline">
-                                            Бүгд →
-                                        </Link>
                                     </div>
                                 </CardHeader>
                                 <CardContent className="p-0">
@@ -800,10 +842,10 @@ export default function DashboardPage() {
                                         </CardTitle>
                                         <div className="flex items-center gap-2">
                                             <Badge variant="destructive" className="text-sm">
-                                                {problemApartments.filter(a => a.has_problem).length} бохир
+                                                {problemApartments.filter(a => a.has_problem).length} бохирдсон
                                             </Badge>
                                             <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 text-sm">
-                                                {problemApartments.filter(a => a.has_warning && !a.has_problem).length} холболт
+                                                {problemApartments.filter(a => a.has_warning && !a.has_problem).length} холболтын алдаа
                                             </Badge>
                                         </div>
                                     </div>
@@ -838,8 +880,8 @@ export default function DashboardPage() {
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="all">Бүгд</SelectItem>
-                                                <SelectItem value="problem">🔴 Асуудал</SelectItem>
-                                                <SelectItem value="warning">🟡 Анхааруулга</SelectItem>
+                                                <SelectItem value="problem">🔴 Бохирдсон</SelectItem>
+                                                <SelectItem value="warning">🟡 Холболтын алдаа</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -943,7 +985,7 @@ export default function DashboardPage() {
                                                                         {/* Problem devices (red) - only smoke detectors, bell, mcp, relay */}
                                                                         {problemDevices.length > 0 && (
                                                                             <div className="flex flex-wrap gap-1 mt-2">
-                                                                                <span className="text-xs text-red-600 dark:text-red-400 font-medium">🔴 Асуудал:</span>
+                                                                                <span className="text-xs text-red-600 dark:text-red-400 font-medium">🔴 Бохирдсон:</span>
                                                                                 {problemDevices.map((d, i) => (
                                                                                     <span key={`sd-${i}`} className="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded text-xs font-mono">
                                                                                         SD-{d.address}
@@ -956,7 +998,7 @@ export default function DashboardPage() {
                                                                         {/* Warning devices (yellow) - only smoke detectors, bell, mcp, relay */}
                                                                         {warningDevices.length > 0 && (
                                                                             <div className="flex flex-wrap gap-1 mt-2">
-                                                                                <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">🟡 Анхааруулга:</span>
+                                                                                <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">🟡 Холболтын алдаа:</span>
                                                                                 {warningDevices.map((d, i) => (
                                                                                     <span key={`sd-${i}`} className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded text-xs font-mono">
                                                                                         SD-{d.address}

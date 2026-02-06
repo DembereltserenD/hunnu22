@@ -88,6 +88,7 @@ function WorkersPageContent() {
         delete: false,
     });
 
+
     // Use entity filters hook for managing search and filters
     const {
         filters,
@@ -129,6 +130,7 @@ function WorkersPageContent() {
         loadingActions.startLoading('fetch');
         loadWorkers(1);
     }, [searchQuery, filters]);
+
 
     const handlePageChange = (page: number) => {
         loadWorkers(page);

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -11,9 +11,8 @@ import {
     Users,
     Building,
     Home,
-    Phone,
-    Menu,
-    MessageSquare
+    ClipboardList,
+    Menu
 } from "lucide-react";
 
 interface NavItem {
@@ -39,14 +38,9 @@ const navItems: NavItem[] = [
         icon: Home,
     },
     {
-        label: "Утасны асуудал",
-        href: "/admin-hunnu/phone-issues",
-        icon: Phone,
-    },
-    {
-        label: "Ажилчдын хүсэлт",
-        href: "/admin-hunnu/worker-requests",
-        icon: MessageSquare,
+        label: "Tasks",
+        href: "/admin-hunnu/tasks",
+        icon: ClipboardList,
     },
 ];
 
@@ -140,3 +134,5 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         </div>
     );
 }
+
+

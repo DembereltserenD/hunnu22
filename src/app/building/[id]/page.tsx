@@ -14,6 +14,7 @@ import { FirePanelTable } from "@/components/building/fire-panel-table";
 import { ApartmentDeviceInfo } from "@/components/building/apartment-device-info";
 import { DetectorHistory } from "@/components/building/detector-history";
 import { useFirePanelData } from "@/hooks/use-fire-panel-data";
+import { useToast } from "@/components/ui/use-toast";
 
 type DeviceStatus = 'ok' | 'problem' | 'warning';
 
@@ -72,6 +73,7 @@ export default function BuildingDetailPage() {
   const [showHistory, setShowHistory] = useState(false);
   const [historyData, setHistoryData] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const { toast } = useToast();
   const params = useParams();
   const buildingId = params.id as string;
 
@@ -315,10 +317,21 @@ export default function BuildingDetailPage() {
     currentStatus: DeviceStatus,
     nextStatus: DeviceStatus,
   ) => {
+    if (!isAdmin) {
+      toast({
+        variant: "destructive",
+        title: "Зөвшөөрөлгүй",
+        description: "Зөвхөн админ эрхтэй хэрэглэгч төхөөрөмжийн төлөвийг өөрчилнө.",
+      });
+      return;
+    }
+
+    const overrideKey = `${deviceType}-${unitNumber}-${address}`;
+
     // Optimistic update for offline-first experience
     setDetectorOverrides(prev => ({
       ...prev,
-      [`${deviceType}-${unitNumber}-${address}`]: nextStatus,
+      [overrideKey]: nextStatus,
     }));
 
     try {
@@ -330,6 +343,10 @@ export default function BuildingDetailPage() {
           deviceType,
           currentStatus,
           newStatus: nextStatus,
+        });
+        toast({
+          title: "Оффлайн байна",
+          description: "Сүлжээ орсон үед өөрчлөлт автоматаар илгээгдэнэ.",
         });
         return;
       }
@@ -352,13 +369,17 @@ export default function BuildingDetailPage() {
         // Update local overrides state with deviceType in key (ensure server truth)
         setDetectorOverrides(prev => ({
           ...prev,
-          [`${deviceType}-${unitNumber}-${address}`]: newStatus,
+          [overrideKey]: newStatus,
         }));
         // Always refresh history for tooltips
         fetchHistory();
       } else {
         const error = await response.json();
         console.error('Failed to change device status:', error.error);
+        setDetectorOverrides(prev => ({
+          ...prev,
+          [overrideKey]: currentStatus,
+        }));
         enqueuePendingUpdate({
           buildingId,
           unitNumber,
@@ -367,9 +388,18 @@ export default function BuildingDetailPage() {
           currentStatus,
           newStatus: nextStatus,
         });
+        toast({
+          variant: "destructive",
+          title: "Алдаа",
+          description: error?.error || "Төлөв өөрчилж чадсангүй.",
+        });
       }
     } catch (error) {
       console.error('Error changing device status:', error);
+      setDetectorOverrides(prev => ({
+        ...prev,
+        [overrideKey]: currentStatus,
+      }));
       enqueuePendingUpdate({
         buildingId,
         unitNumber,
@@ -377,6 +407,11 @@ export default function BuildingDetailPage() {
         deviceType,
         currentStatus,
         newStatus: nextStatus,
+      });
+      toast({
+        variant: "destructive",
+        title: "Алдаа",
+        description: "Төлөв өөрчлөх үед сүлжээний алдаа гарлаа.",
       });
     }
   };
@@ -528,13 +563,13 @@ export default function BuildingDetailPage() {
                         <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{firePanelStats.normal}</div>
                         <div className="text-xs text-emerald-600/70 dark:text-emerald-400/70 font-medium mt-1">Хэвийн</div>
                       </div>
-                      <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/30 rounded-xl p-4 text-center">
-                        <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{firePanelStats.contaminated}</div>
-                        <div className="text-xs text-amber-600/70 dark:text-amber-400/70 font-medium mt-1">Бохирдсон</div>
-                      </div>
                       <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 rounded-xl p-4 text-center">
-                        <div className="text-2xl font-bold text-red-600 dark:text-red-400">{firePanelStats.commFault}</div>
-                        <div className="text-xs text-red-600/70 dark:text-red-400/70 font-medium mt-1">Холболтын алдаа</div>
+                        <div className="text-2xl font-bold text-red-600 dark:text-red-400">{firePanelStats.contaminated}</div>
+                        <div className="text-xs text-red-600/70 dark:text-red-400/70 font-medium mt-1">Бохирдсон</div>
+                      </div>
+                      <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/30 dark:to-yellow-800/30 rounded-xl p-4 text-center">
+                        <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{firePanelStats.commFault}</div>
+                        <div className="text-xs text-yellow-600/70 dark:text-yellow-400/70 font-medium mt-1">Холболтын алдаа</div>
                       </div>
                     </div>
 
@@ -819,3 +854,4 @@ export default function BuildingDetailPage() {
     </div>
   );
 }
+

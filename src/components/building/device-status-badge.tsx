@@ -37,7 +37,7 @@ interface DeviceStatusBadgeProps {
 const STATUS_LABELS: Record<DeviceStatus, string> = {
     ok: 'Хэвийн',
     problem: 'Бохирдсон',
-    warning: '\u0410\u0441\u0443\u0443\u0434\u0430\u043B\u0442\u0430\u0439',
+    warning: '\u0425\u043e\u043b\u0431\u043e\u043b\u0442\u044b\u043d \u0430\u043b\u0434\u0430\u0430',
 };
 
 const STATUS_ORDER: DeviceStatus[] = ['ok', 'warning', 'problem'];
@@ -55,7 +55,7 @@ export function DeviceStatusBadge({
             case 'problem':
                 return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
             case 'warning':
-                return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+                return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400';
             default:
                 return 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300';
         }

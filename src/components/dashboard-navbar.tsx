@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { Button } from "@/components/ui/button";
 import { ThemeSwitcher } from "@/components/theme-switcher";
@@ -59,23 +59,24 @@ export default function DashboardNavbar() {
           <Link href="/health-stats">
             <Button variant="outline" size="sm" className="gap-2 border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20">
               <Activity className="h-4 w-4" />
-              Эрүүл мэнд
+              {"\u042d\u0440\u04af\u04af\u043b \u043c\u044d\u043d\u0434"}
+            </Button>
+          </Link>
+          <Link href="/task">
+            <Button variant="outline" size="sm" className="gap-2 border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20">
+              <MessageSquare className="h-4 w-4" />
+              Task
             </Button>
           </Link>
           <Link href="/worker-requests">
             <Button variant="outline" size="sm" className="gap-2 border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20">
               <MessageSquare className="h-4 w-4" />
-              Хүсэлт илгээх
+              {"\u0425\u04af\u0441\u044d\u043b\u0442 \u0438\u043b\u0433\u044d\u044d\u0445"}
             </Button>
           </Link>
           <Link href="/operator">
             <Button variant="outline" size="sm" className="border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20">
               {"\u041E\u043F\u0435\u0440\u0430\u0442\u043E\u0440"}
-            </Button>
-          </Link>
-          <Link href="/worker-dashboard">
-            <Button variant="outline" size="sm" className="border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20">
-              Ажлын самбар
             </Button>
           </Link>
           <UserProfile />
@@ -89,12 +90,12 @@ export default function DashboardNavbar() {
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
                 <Menu className="h-5 w-5" />
-                <span className="sr-only">Цэс нээх</span>
+                <span className="sr-only">Ð¦ÑÑ Ð½ÑÑÑ…</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[280px] sm:w-[350px]">
               <SheetHeader>
-                <SheetTitle>Цэс</SheetTitle>
+                <SheetTitle>Ð¦ÑÑ</SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-3 mt-8">
                 {userName && (
@@ -106,23 +107,24 @@ export default function DashboardNavbar() {
                 <Link href="/health-stats" onClick={() => setOpen(false)}>
                   <Button variant="outline" className="w-full justify-start text-base h-12 gap-2 border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20">
                     <Activity className="h-5 w-5" />
-                    Эрүүл мэнд
+                    {"\u042d\u0440\u04af\u04af\u043b \u043c\u044d\u043d\u0434"}
+                  </Button>
+                </Link>
+                <Link href="/task" onClick={() => setOpen(false)}>
+                  <Button variant="outline" className="w-full justify-start text-base h-12 gap-2 border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20">
+                    <MessageSquare className="h-5 w-5" />
+                    Task
                   </Button>
                 </Link>
                 <Link href="/worker-requests" onClick={() => setOpen(false)}>
                   <Button variant="outline" className="w-full justify-start text-base h-12 gap-2 border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20">
                     <MessageSquare className="h-5 w-5" />
-                    Хүсэлт илгээх
+                    {"\u0425\u04af\u0441\u044d\u043b\u0442 \u0438\u043b\u0433\u044d\u044d\u0445"}
                   </Button>
                 </Link>
                 <Link href="/operator" onClick={() => setOpen(false)}>
                   <Button variant="outline" className="w-full justify-start text-base h-12 border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20">
                     {"\u041E\u043F\u0435\u0440\u0430\u0442\u043E\u0440"}
-                  </Button>
-                </Link>
-                <Link href="/worker-dashboard" onClick={() => setOpen(false)}>
-                  <Button variant="outline" className="w-full justify-start text-base h-12 border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20">
-                    Ажлын самбар
                   </Button>
                 </Link>
               </div>

@@ -85,10 +85,10 @@ interface Stats {
 // Status badge component
 function StatusBadge({ status }: { status: 'ok' | 'problem' | 'warning' }) {
   if (status === 'problem') {
-    return <span className="w-2 h-2 rounded-full bg-red-500 inline-block" title="Problem" />;
+    return <span className="w-2 h-2 rounded-full bg-red-500 inline-block" title="Бохирдсон" />;
   }
   if (status === 'warning') {
-    return <span className="w-2 h-2 rounded-full bg-yellow-500 inline-block" title="Warning" />;
+    return <span className="w-2 h-2 rounded-full bg-yellow-500 inline-block" title="Холболтын алдаа" />;
   }
   return <span className="w-2 h-2 rounded-full bg-green-500 inline-block" title="OK" />;
 }
@@ -488,7 +488,7 @@ function ApartmentsPageContent() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-red-600">{stats.withProblems}</p>
-                <p className="text-xs text-muted-foreground">Асуудалтай</p>
+                <p className="text-xs text-muted-foreground">Бохирдсон</p>
               </div>
             </div>
           </CardContent>
@@ -505,7 +505,7 @@ function ApartmentsPageContent() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-yellow-600">{stats.withWarnings}</p>
-                <p className="text-xs text-muted-foreground">Анхааруулга</p>
+                <p className="text-xs text-muted-foreground">Холболтын алдаа</p>
               </div>
             </div>
           </CardContent>
@@ -607,12 +607,12 @@ function ApartmentsPageContent() {
                       <Badge variant="outline" className="font-medium">{loopApartments.length} айл</Badge>
                       {apartmentsWithProblems.length > 0 && (
                         <Badge variant="destructive" className="font-medium">
-                          {apartmentsWithProblems.length} асуудал
+                          {apartmentsWithProblems.length} бохирдсон
                         </Badge>
                       )}
                       {apartmentsWithWarnings.length > 0 && (
                         <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 font-medium">
-                          {apartmentsWithWarnings.length} анхааруулга
+                          {apartmentsWithWarnings.length} холболтын алдаа
                         </Badge>
                       )}
                     </div>
